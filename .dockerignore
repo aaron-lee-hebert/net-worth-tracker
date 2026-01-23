@@ -1,0 +1,33 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Git
+.git/
+.gitignore
+
+# Tests (not needed in production)
+tests/
+
+# Documentation
+*.md
+LICENSE
+
+# Docker files (not needed in build context)
+docker-compose*.yml
+.dockerignore
+
+# Data directory
+data/
+
+# Claude config
+.claude/

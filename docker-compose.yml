@@ -1,0 +1,18 @@
+# Docker Compose configuration for self-hosted deployment
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - networth-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DatabaseProvider=SQLite
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/networth.db
+      # Uncomment to seed demo data on first run
+      # - SeedDemoData=true
+
+volumes:
+  networth-data:

@@ -1,0 +1,251 @@
+@{
+    ViewData["Title"] = "Forecasts";
+    var forecastMonths = ViewBag.ForecastMonths ?? 60;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1" style="border-bottom: none;">Financial Forecast</h2>
+        <p class="text-muted mb-0">Projected net worth based on historical trends</p>
+    </div>
+</div>
+
+<!-- Loading State -->
+<div id="forecastLoading" class="text-center py-5">
+    <div class="spinner-border" style="color: var(--color-primary);" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="text-muted mt-2">Loading forecast data...</p>
+</div>
+
+<!-- No Data State -->
+<div id="noForecastData" class="d-none">
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <p class="mt-3 text-muted">Not enough data to generate forecasts.</p>
+            <p class="text-muted">Add accounts and track balances over time to see projections.</p>
+            <a asp-controller="Accounts" asp-action="Index" class="btn btn-primary">
+                Manage Accounts
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content (shown after data loads) -->
+<div id="forecastContent" class="d-none">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100" style="border-left: 4px solid var(--color-accent);">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Current Net Worth</h6>
+                    <h3 class="mb-0 net-worth-value" id="currentNetWorth">$0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100" id="projectedCard" style="border-left: 4px solid var(--color-success);">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Projected (<span id="projectionDate"></span>)</h6>
+                    <h3 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);" id="projectedNetWorth">$0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100" style="border-left: 4px solid var(--color-success);">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Projected Change</h6>
+                    <h3 class="mb-0" style="font-family: var(--font-serif);" id="projectedChange">$0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100" style="border-left: 4px solid var(--color-success);">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Growth Rate</h6>
+                    <h3 class="mb-0" style="font-family: var(--font-serif);" id="growthRate">0%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Chart -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">Net Worth Projection</h5>
+            <div class="btn-group btn-group-sm flex-wrap">
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 12 ? "btn-primary" : "btn-outline-primary")" data-months="12">1Y</button>
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 24 ? "btn-primary" : "btn-outline-primary")" data-months="24">2Y</button>
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 60 ? "btn-primary" : "btn-outline-primary")" data-months="60">5Y</button>
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 120 ? "btn-primary" : "btn-outline-primary")" data-months="120">10Y</button>
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 240 ? "btn-primary" : "btn-outline-primary")" data-months="240">20Y</button>
+                <button type="button" class="btn forecast-period-btn @(forecastMonths == 360 ? "btn-primary" : "btn-outline-primary")" data-months="360">30Y</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="height: 400px;">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Forecasts Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Account Projections</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th class="text-end">Current</th>
+                            <th class="text-end">Projected</th>
+                            <th class="text-end">Change</th>
+                            <th class="text-center">Trend</th>
+                            <th>Payoff Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                    <tfoot class="table-summary">
+                        <tr>
+                            <td colspan="2"><strong>Net Worth</strong></td>
+                            <td class="text-end"><strong id="footerCurrentNetWorth">$0</strong></td>
+                            <td class="text-end"><strong id="footerProjectedNetWorth">$0</strong></td>
+                            <td class="text-end">
+                                <strong id="footerProjectedChange">$0</strong>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assumptions -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <a class="text-decoration-none" data-bs-toggle="collapse" href="#assumptionsCollapse" role="button" aria-expanded="false">
+                    Forecast Assumptions & Methodology
+                </a>
+            </h6>
+        </div>
+        <div class="collapse" id="assumptionsCollapse">
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    These projections use <strong>historical averages</strong> and should be treated as rough estimates only.
+                    When historical trend data is available, it is used but capped at these limits.
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-success">Assets</h6>
+                        <table class="table table-sm small">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Investments</strong></td>
+                                    <td>7% annual return</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        Based on historical average for diversified equity portfolios
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Real Estate</strong></td>
+                                    <td>2% annual appreciation</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        At or below inflation rate; does not assume market booms
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Savings/Banking</strong></td>
+                                    <td>0.5% annual growth</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        Conservative; assumes minimal interest/contributions
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vehicles</strong></td>
+                                    <td>15% annual depreciation</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        Floor at 10% of current value (salvage)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Business</strong></td>
+                                    <td>3% annual growth</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-danger">Liabilities</h6>
+                        <table class="table table-sm small">
+                            <tbody>
+                                <tr>
+                                    <td><strong>All Debts</strong></td>
+                                    <td>Project to $0</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        Uses historical paydown rate if available; otherwise assumes 3% quarterly minimum payment
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h6 class="mt-3">Methodology</h6>
+                        <table class="table table-sm small">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Growth Model</strong></td>
+                                    <td>Compound growth (Rule of 72)</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-muted" style="font-size: 0.8em;">
+                                        Projections use compound interest where each period builds on the previous balance
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Time Intervals</strong></td>
+                                    <td>Quarterly data points</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Example</strong></td>
+                                    <td>At 7%, investments double in ~10 years</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="alert alert-warning mt-3">
+        <strong>Disclaimer:</strong> These projections are <strong>estimates for informational purposes only</strong> and are not financial advice.
+        Actual results will vary based on market conditions, interest rates, life events, and your financial decisions.
+        Past performance does not guarantee future results. Consult a qualified financial advisor for personalized guidance.
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        document.body.dataset.forecastMonths = '@forecastMonths';
+    </script>
+    <script src="~/js/forecast-chart.js" asp-append-version="true"></script>
+}

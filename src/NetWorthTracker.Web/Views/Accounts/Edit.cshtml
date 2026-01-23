@@ -1,0 +1,101 @@
+@model NetWorthTracker.Core.ViewModels.AccountEditViewModel
+@using NetWorthTracker.Core.Enums
+@using NetWorthTracker.Core.Extensions
+@{
+    ViewData["Title"] = "Edit Account";
+    var assetCategories = AccountCategoryExtensions.GetAssetCategories().ToList();
+    var liabilityCategories = AccountCategoryExtensions.GetLiabilityCategories().ToList();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h4 class="mb-0">Edit Account</h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Account Name</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AccountType" class="form-label">Account Type</label>
+                        <select asp-for="AccountType" class="form-select">
+                            <optgroup label="--- Assets ---">
+                            @foreach (var category in assetCategories)
+                            {
+                                <optgroup label="@category.GetDisplayName()">
+                                    @foreach (var type in AccountTypeExtensions.GetTypesByCategory(category))
+                                    {
+                                        <option value="@((int)type)" selected="@(Model.AccountType == type)">@type.GetDisplayName()</option>
+                                    }
+                                </optgroup>
+                            }
+                            </optgroup>
+                            <optgroup label="--- Liabilities ---">
+                            @foreach (var category in liabilityCategories)
+                            {
+                                <optgroup label="@category.GetDisplayName()">
+                                    @foreach (var type in AccountTypeExtensions.GetTypesByCategory(category))
+                                    {
+                                        <option value="@((int)type)" selected="@(Model.AccountType == type)">@type.GetDisplayName()</option>
+                                    }
+                                </optgroup>
+                            }
+                            </optgroup>
+                        </select>
+                        <span asp-validation-for="AccountType" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CurrentBalance" class="form-label">Current Balance</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input asp-for="CurrentBalance" class="form-control" type="number" step="0.01" />
+                        </div>
+                        <span asp-validation-for="CurrentBalance" class="text-danger"></span>
+                        <div class="form-text">Updating the balance will record a new entry in balance history.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Institution" class="form-label">Institution</label>
+                        <input asp-for="Institution" class="form-control" />
+                        <span asp-validation-for="Institution" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AccountNumber" class="form-label">Account Number</label>
+                        <input asp-for="AccountNumber" class="form-control" />
+                        <span asp-validation-for="AccountNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label">Active Account</label>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,151 @@
+@model IList<NetWorthTracker.Core.ViewModels.AccountViewModel>
+@using NetWorthTracker.Core.Enums
+@using NetWorthTracker.Core.Extensions
+@{
+    ViewData["Title"] = "Accounts";
+    var currentCategory = ViewBag.CurrentCategory as AccountCategory?;
+    var assetCategories = AccountCategoryExtensions.GetAssetCategories().ToList();
+    var liabilityCategories = AccountCategoryExtensions.GetLiabilityCategories().ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1" style="border-bottom: none;">Accounts</h2>
+        <p class="text-muted mb-0">Manage your financial accounts</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">Add Account</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs flex-wrap">
+            <li class="nav-item">
+                <a class="nav-link @(currentCategory == null ? "active" : "")" asp-action="Index">All</a>
+            </li>
+            @foreach (var category in assetCategories)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(currentCategory == category ? "active" : "")" asp-action="Index" asp-route-category="@category">@category.GetDisplayName()</a>
+                </li>
+            }
+            @foreach (var category in liabilityCategories)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(currentCategory == category ? "active" : "") text-danger" asp-action="Index" asp-route-category="@category">@category.GetDisplayName()</a>
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Institution</th>
+                            <th>Account #</th>
+                            <th class="text-end">Balance</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var account in Model)
+                        {
+                            <tr class="@(!account.IsActive ? "table-secondary" : "")">
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@account.Id" class="text-decoration-none">
+                                        @account.Name
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge @GetAccountTypeBadgeClass(account.AccountType)">
+                                        @account.AccountType.GetDisplayName()
+                                    </span>
+                                </td>
+                                <td>@(account.Institution ?? "-")</td>
+                                <td>@(string.IsNullOrEmpty(account.AccountNumber) ? "-" : "****" + account.AccountNumber[^4..])</td>
+                                <td class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
+                                    @account.CurrentBalance.ToString("C")
+                                </td>
+                                <td>
+                                    @if (account.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="Details" asp-route-id="@account.Id" class="btn btn-outline-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@account.Id" class="btn btn-outline-secondary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@account.Id" class="btn btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light fw-bold">
+                            <td colspan="4">Total</td>
+                            <td class="text-end">
+                                @{
+                                    var total = Model.Where(a => a.IsActive).Sum(a => a.AccountType.IsLiability() ? -a.CurrentBalance : a.CurrentBalance);
+                                }
+                                <span class="@(total < 0 ? "text-danger" : "")">@total.ToString("C")</span>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <p class="text-muted mt-3">
+                    @if (currentCategory.HasValue)
+                    {
+                        <text>No @currentCategory.Value.GetDisplayName().ToLower() accounts found.</text>
+                    }
+                    else
+                    {
+                        <text>No accounts found. Add your first account to get started!</text>
+                    }
+                </p>
+                <a asp-action="Create" class="btn btn-primary">Add Account</a>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetAccountTypeBadgeClass(AccountType type)
+    {
+        var category = type.GetCategory();
+        return category switch
+        {
+            AccountCategory.Banking => "bg-primary",
+            AccountCategory.Investment => "bg-info",
+            AccountCategory.RealEstate => "bg-warning text-dark",
+            AccountCategory.VehiclesAndProperty => "bg-secondary",
+            AccountCategory.Business => "bg-success",
+            AccountCategory.SecuredDebt => "bg-danger",
+            AccountCategory.UnsecuredDebt => "bg-danger",
+            AccountCategory.OtherLiabilities => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
