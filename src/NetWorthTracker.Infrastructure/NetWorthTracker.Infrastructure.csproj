@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NetWorthTracker.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NHibernate" />
+    <PackageReference Include="FluentNHibernate" />
+    <PackageReference Include="System.Data.SQLite.Core" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="NHibernate.AspNetCore.Identity" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
+  </ItemGroup>
+
+</Project>

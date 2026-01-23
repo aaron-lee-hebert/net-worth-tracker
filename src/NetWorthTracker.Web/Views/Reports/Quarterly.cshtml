@@ -1,0 +1,174 @@
+@model NetWorthTracker.Core.ViewModels.QuarterlyReportViewModel
+@{
+    ViewData["Title"] = "Quarterly Report";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-title mb-1" style="border-bottom: none;">Quarterly Report</h2>
+        <p class="text-muted mb-0">Account balances by quarter</p>
+    </div>
+    @if (Model.Quarters.Any())
+    {
+        <a asp-action="DownloadCsv" class="btn btn-primary">
+            Download CSV
+        </a>
+    }
+</div>
+
+@if (!Model.Quarters.Any())
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <p class="mt-3 text-muted">No balance history data available yet.</p>
+            <a asp-controller="Accounts" asp-action="Index" class="btn btn-primary">
+                Add Account Balances
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col" style="min-width: 200px; background-color: var(--color-bg-secondary);">Account</th>
+                            <th style="min-width: 100px; background-color: var(--color-bg-secondary);">Type</th>
+                            @foreach (var quarter in Model.Quarters)
+                            {
+                                <th class="text-end" style="min-width: 120px; background-color: var(--color-bg-secondary);">@quarter</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var assetAccounts = Model.Accounts.Where(a => !a.IsLiability).ToList();
+                            var liabilityAccounts = Model.Accounts.Where(a => a.IsLiability).ToList();
+                        }
+
+                        @if (assetAccounts.Any())
+                        {
+                            <tr style="background-color: rgba(45, 90, 78, 0.1);">
+                                <td class="sticky-col" style="background-color: rgba(45, 90, 78, 0.1);" colspan="@(Model.Quarters.Count + 2)"><strong>Assets</strong></td>
+                            </tr>
+                            @foreach (var account in assetAccounts)
+                            {
+                                <tr>
+                                    <td class="sticky-col" style="background-color: var(--color-bg-card);">
+                                        <a asp-controller="Accounts" asp-action="Details" asp-route-id="@account.Id">
+                                            @account.Name
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-secondary">@account.Type</span></td>
+                                    @for (int i = 0; i < account.Balances.Count; i++)
+                                    {
+                                        var balance = account.Balances[i];
+                                        <td class="text-end">
+                                            @if (balance.HasValue)
+                                            {
+                                                @balance.Value.ToString("C")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+
+                        @if (liabilityAccounts.Any())
+                        {
+                            <tr style="background-color: rgba(139, 58, 58, 0.1);">
+                                <td class="sticky-col" style="background-color: rgba(139, 58, 58, 0.1);" colspan="@(Model.Quarters.Count + 2)"><strong>Liabilities</strong></td>
+                            </tr>
+                            @foreach (var account in liabilityAccounts)
+                            {
+                                <tr>
+                                    <td class="sticky-col" style="background-color: var(--color-bg-card);">
+                                        <a asp-controller="Accounts" asp-action="Details" asp-route-id="@account.Id">
+                                            @account.Name
+                                        </a>
+                                    </td>
+                                    <td><span class="badge bg-danger">@account.Type</span></td>
+                                    @for (int i = 0; i < account.Balances.Count; i++)
+                                    {
+                                        var balance = account.Balances[i];
+                                        <td class="text-end text-danger">
+                                            @if (balance.HasValue)
+                                            {
+                                                @balance.Value.ToString("C")
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                    <tfoot class="table-summary">
+                        <tr>
+                            <td class="sticky-col" style="background-color: var(--color-bg-secondary);" colspan="2"><strong>Net Worth</strong></td>
+                            @for (int i = 0; i < Model.Totals.NetWorth.Count; i++)
+                            {
+                                var netWorth = Model.Totals.NetWorth[i];
+                                <td class="text-end">
+                                    <strong class="@(netWorth >= 0 ? "text-success" : "text-danger")">
+                                        @netWorth.ToString("C")
+                                    </strong>
+                                </td>
+                            }
+                        </tr>
+                        <tr>
+                            <td class="sticky-col" style="background-color: var(--color-bg-secondary);" colspan="2"><strong>% Change</strong></td>
+                            @for (int i = 0; i < Model.Totals.PercentChange.Count; i++)
+                            {
+                                var change = Model.Totals.PercentChange[i];
+                                <td class="text-end">
+                                    @if (change.HasValue)
+                                    {
+                                        var isPositive = change.Value > 0;
+                                        var isNegative = change.Value < 0;
+                                        var colorClass = isPositive ? "text-success" : (isNegative ? "text-danger" : "");
+                                        var arrow = isPositive ? "\u2191" : (isNegative ? "\u2193" : "");
+                                        <span class="@colorClass">
+                                            @arrow @change.Value.ToString("+0.00;-0.00;0.00")%
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 text-muted small">
+        Showing @Model.Quarters.Count quarters from @Model.Quarters.First() to @Model.Quarters.Last()
+    </div>
+}
+
+@section Scripts {
+    <style>
+        .table-responsive {
+            max-height: 80vh;
+        }
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+    </style>
+}

@@ -1,0 +1,123 @@
+@model string[]
+@{
+    ViewData["Title"] = "Recovery Codes";
+}
+
+<h2 class="mb-4"><i class="bi bi-key me-2"></i>Recovery Codes</h2>
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Settings</a></li>
+        <li class="breadcrumb-item"><a asp-action="SetupMfa">MFA</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Recovery Codes</li>
+    </ol>
+</nav>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Save Your Recovery Codes</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> Save these recovery codes in a safe place. If you lose access to your authenticator app, you can use these codes to sign in. Each code can only be used once.
+                </div>
+
+                <p class="text-muted">
+                    These codes allow you to access your account if you lose your phone or can't use your authenticator app.
+                    Store them securely (e.g., in a password manager or printed and kept in a safe location).
+                </p>
+
+                <div class="card bg-light mt-4">
+                    <div class="card-body">
+                        <div class="row">
+                            @for (int i = 0; i < Model.Length; i++)
+                            {
+                                <div class="col-6 col-md-4 col-lg-3 mb-2">
+                                    <code class="fs-6">@Model[i]</code>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 flex-wrap">
+                    <button type="button" class="btn btn-primary" onclick="copyRecoveryCodes()">
+                        <i class="bi bi-clipboard me-1"></i>Copy to Clipboard
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="downloadRecoveryCodes()">
+                        <i class="bi bi-download me-1"></i>Download as Text File
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Note:</strong> Once you navigate away from this page, you won't be able to see these codes again.
+                    If you lose them, you can generate new codes from the MFA settings page (which will invalidate these codes).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="SetupMfa" class="btn btn-outline-primary">
+        <i class="bi bi-shield-check me-1"></i>Back to MFA Settings
+    </a>
+    <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+        <i class="bi bi-gear me-1"></i>Back to Settings
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        var recoveryCodes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+        function copyRecoveryCodes() {
+            var text = recoveryCodes.join('\n');
+            navigator.clipboard.writeText(text).then(function() {
+                var btn = event.currentTarget;
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                setTimeout(function() {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 2000);
+            });
+        }
+
+        function downloadRecoveryCodes() {
+            var text = 'Net Worth Tracker - Recovery Codes\n';
+            text += 'Generated: ' + new Date().toLocaleString() + '\n';
+            text += '================================\n\n';
+            text += recoveryCodes.join('\n');
+            text += '\n\n================================\n';
+            text += 'Keep these codes safe. Each code can only be used once.';
+
+            var blob = new Blob([text], { type: 'text/plain' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'net-worth-tracker-recovery-codes.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+}

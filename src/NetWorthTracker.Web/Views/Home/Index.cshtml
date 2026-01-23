@@ -1,0 +1,114 @@
+@using Microsoft.AspNetCore.Identity
+@using NetWorthTracker.Core.Entities
+@inject SignInManager<ApplicationUser> SignInManager
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center py-5">
+    <h1 class="display-4 mb-3" style="font-family: var(--font-serif); font-weight: 700; color: var(--color-primary);">
+        Net Worth Tracker
+    </h1>
+    <p class="lead mb-4" style="color: var(--color-text-secondary); max-width: 600px; margin: 0 auto;">
+        A private ledger for your financial life. Track assets, monitor liabilities,
+        and understand your true wealth over time.
+    </p>
+    <hr class="divider-gold mx-auto" style="width: 100px;">
+
+    @if (!SignInManager.IsSignedIn(User))
+    {
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg px-4">
+                Get Started
+            </a>
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg px-4">
+                Sign In
+            </a>
+        </div>
+    }
+    else
+    {
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary btn-lg px-4 mt-4">
+            View Dashboard
+        </a>
+    }
+</div>
+
+<div class="row mt-5 g-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-accent);">$</div>
+                <h5 class="card-title">Liquid Assets</h5>
+                <p class="card-text">
+                    Checking accounts, savings, money markets, and cash holdings.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-accent);">%</div>
+                <h5 class="card-title">Investments</h5>
+                <p class="card-text">
+                    Stocks, bonds, retirement accounts, and brokerage holdings.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-accent);">&amp;</div>
+                <h5 class="card-title">Real Property</h5>
+                <p class="card-text">
+                    Real estate, vehicles, collectibles, and tangible assets.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-danger);">&minus;</div>
+                <h5 class="card-title">Liabilities</h5>
+                <p class="card-text">
+                    Mortgages, loans, credit cards, and outstanding debts.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-primary);">=</div>
+                <h5 class="card-title">Net Worth</h5>
+                <p class="card-text">
+                    Your complete financial picture, calculated automatically.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center p-4">
+                <div class="mb-3" style="font-size: 2.5rem; color: var(--color-primary);">&rarr;</div>
+                <h5 class="card-title">Track Progress</h5>
+                <p class="card-text">
+                    Historical records and trends to measure your financial growth.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-5 py-4" style="border-top: 1px solid var(--color-border);">
+    <p class="mb-2" style="font-family: var(--font-serif); font-style: italic; color: var(--color-text-secondary);">
+        "The first step to financial independence is knowing where you stand."
+    </p>
+    <small class="text-muted">Your data stays on your server. No third-party access. Complete privacy.</small>
+</div>

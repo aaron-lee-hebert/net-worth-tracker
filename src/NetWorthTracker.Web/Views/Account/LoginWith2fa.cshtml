@@ -1,0 +1,59 @@
+@model NetWorthTracker.Core.ViewModels.LoginWith2faViewModel
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock fs-1 text-primary"></i>
+                    <h3 class="mt-2">Two-Factor Authentication</h3>
+                    <p class="text-muted">Enter the code from your authenticator app</p>
+                </div>
+
+                <form asp-action="LoginWith2fa" method="post">
+                    <input type="hidden" asp-for="ReturnUrl" />
+                    <input type="hidden" asp-for="RememberMe" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="TwoFactorCode" class="form-label">Authenticator Code</label>
+                        <input asp-for="TwoFactorCode" class="form-control form-control-lg text-center font-monospace"
+                               autocomplete="off" inputmode="numeric" maxlength="6" placeholder="000000" autofocus />
+                        <span asp-validation-for="TwoFactorCode" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" asp-for="RememberMachine" />
+                            <label class="form-check-label" asp-for="RememberMachine">
+                                Remember this device
+                            </label>
+                        </div>
+                        <small class="text-muted">You won't need to enter a code on this device for 30 days</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-unlock me-1"></i>Sign In
+                    </button>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="text-muted small mb-2">Don't have access to your authenticator?</p>
+                    <a asp-action="LoginWithRecoveryCode" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-key me-1"></i>Use a Recovery Code
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

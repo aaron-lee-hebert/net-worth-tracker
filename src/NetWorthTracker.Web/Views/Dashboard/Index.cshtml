@@ -1,0 +1,277 @@
+@model NetWorthTracker.Core.ViewModels.DashboardViewModel
+@using NetWorthTracker.Core.Enums
+@using NetWorthTracker.Core.Extensions
+@{
+    ViewData["Title"] = "Dashboard";
+    var assetCategories = AccountCategoryExtensions.GetAssetCategories().ToList();
+    var liabilityCategories = AccountCategoryExtensions.GetLiabilityCategories().ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0" style="border-bottom: none;">Dashboard</h2>
+    <a asp-controller="Accounts" asp-action="Create" class="btn btn-primary">
+        Add Account
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-accent);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Net Worth</h6>
+                <h3 class="mb-0 net-worth-value">@Model.TotalNetWorth.ToString("C")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-success);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Total Assets</h6>
+                <h3 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);">@Model.TotalAssets.ToString("C")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-danger);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Total Liabilities</h6>
+                <h3 class="mb-0" style="font-family: var(--font-serif); color: var(--color-danger);">@Model.TotalLiabilities.ToString("C")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.TotalsByCategory.Any())
+{
+    <div class="row mb-4">
+        @foreach (var category in assetCategories.Where(c => Model.TotalsByCategory.ContainsKey(c)))
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">@category.GetDisplayName()</h6>
+                                <h5 class="card-title mb-0">@Model.TotalsByCategory[category].ToString("C")</h5>
+                            </div>
+                            <i class="bi @GetCategoryIcon(category) fs-2 text-primary opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        @foreach (var category in liabilityCategories.Where(c => Model.TotalsByCategory.ContainsKey(c)))
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-muted">@category.GetDisplayName()</h6>
+                                <h5 class="card-title mb-0 text-danger">@Model.TotalsByCategory[category].ToString("C")</h5>
+                            </div>
+                            <i class="bi @GetCategoryIcon(category) fs-2 text-danger opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0">Net Worth History</h5>
+                    <div class="btn-group" role="group" aria-label="View mode">
+                        <button type="button" class="btn btn-outline-primary btn-sm view-mode-btn" data-mode="individual">Individual Accounts</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm view-mode-btn" data-mode="bytype">By Type</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm view-mode-btn active" data-mode="networth">Net Worth</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="btn-group" role="group" aria-label="Date presets">
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-preset="1m">1M</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-preset="3m">3M</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-preset="6m">6M</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-preset="1y">1Y</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn" data-preset="ytd">YTD</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm date-preset-btn active" data-preset="all">All</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="startDate" class="form-label mb-0 small">From:</label>
+                        <input type="date" id="startDate" class="form-control form-control-sm" style="width: auto;">
+                        <label for="endDate" class="form-label mb-0 small">To:</label>
+                        <input type="date" id="endDate" class="form-control form-control-sm" style="width: auto;">
+                    </div>
+                </div>
+                <div id="chartLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading chart data...</p>
+                </div>
+                <div id="noChartData" class="text-center py-5 d-none">
+                    <i class="bi bi-bar-chart fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">No balance history data available for this period.</p>
+                </div>
+                <div id="chartContainer" class="d-none" style="height: 350px;">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Accounts</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentAccounts.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th>Type</th>
+                                    <th>Institution</th>
+                                    <th class="text-end">Balance</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var account in Model.RecentAccounts)
+                                {
+                                    <tr>
+                                        <td>@account.Name</td>
+                                        <td>
+                                            <span class="badge @GetAccountTypeBadgeClass(account.AccountType)">
+                                                @account.AccountType.GetDisplayName()
+                                            </span>
+                                        </td>
+                                        <td>@(account.Institution ?? "-")</td>
+                                        <td class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
+                                            @account.CurrentBalance.ToString("C")
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-controller="Accounts" asp-action="Details" asp-route-id="@account.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-3">No accounts yet. Add your first account to get started.</p>
+                        <a asp-controller="Accounts" asp-action="Create" class="btn btn-primary">
+                            Add Account
+                        </a>
+                    </div>
+                }
+            </div>
+            @if (Model.RecentAccounts.Any())
+            {
+                <div class="card-footer text-center">
+                    <a asp-controller="Accounts" asp-action="Index" class="text-decoration-none">
+                        View all accounts <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Asset Allocation</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.TotalAssets > 0)
+                {
+                    @foreach (var category in assetCategories.Where(c => Model.TotalsByCategory.ContainsKey(c) && Model.TotalsByCategory[c] > 0))
+                    {
+                        var percentage = Model.TotalsByCategory[category] / Model.TotalAssets * 100;
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>@category.GetDisplayName()</span>
+                                <span>@percentage.ToString("F1")%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar @GetCategoryProgressBarClass(category)" role="progressbar" style="width: @percentage.ToString("F1")%"></div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted text-center mb-0">No assets to display</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetAccountTypeBadgeClass(AccountType type)
+    {
+        var category = type.GetCategory();
+        return category switch
+        {
+            AccountCategory.Banking => "bg-primary",
+            AccountCategory.Investment => "bg-info",
+            AccountCategory.RealEstate => "bg-warning text-dark",
+            AccountCategory.VehiclesAndProperty => "bg-secondary",
+            AccountCategory.Business => "bg-success",
+            AccountCategory.SecuredDebt => "bg-danger",
+            AccountCategory.UnsecuredDebt => "bg-danger",
+            AccountCategory.OtherLiabilities => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    string GetCategoryIcon(AccountCategory category)
+    {
+        return category switch
+        {
+            AccountCategory.Banking => "bi-bank",
+            AccountCategory.Investment => "bi-bar-chart-line",
+            AccountCategory.RealEstate => "bi-house",
+            AccountCategory.VehiclesAndProperty => "bi-car-front",
+            AccountCategory.Business => "bi-briefcase",
+            AccountCategory.SecuredDebt => "bi-house-lock",
+            AccountCategory.UnsecuredDebt => "bi-credit-card",
+            AccountCategory.OtherLiabilities => "bi-file-earmark-text",
+            _ => "bi-wallet"
+        };
+    }
+
+    string GetCategoryProgressBarClass(AccountCategory category)
+    {
+        return category switch
+        {
+            AccountCategory.Banking => "bg-primary",
+            AccountCategory.Investment => "bg-info",
+            AccountCategory.RealEstate => "bg-warning",
+            AccountCategory.VehiclesAndProperty => "bg-secondary",
+            AccountCategory.Business => "bg-success",
+            _ => "bg-primary"
+        };
+    }
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/dashboard-chart.js" asp-append-version="true"></script>
+}
