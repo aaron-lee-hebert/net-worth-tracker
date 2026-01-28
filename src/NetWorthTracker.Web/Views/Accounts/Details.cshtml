@@ -15,7 +15,13 @@
             </ol>
         </nav>
     </div>
-    <div class="btn-group">
+    <div class="d-flex gap-2">
+        @if (balanceHistory?.Any() == true)
+        {
+            <a asp-action="ExportAccountHistoryCsv" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Export
+            </a>
+        }
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Edit</a>
         <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">Delete</a>
     </div>

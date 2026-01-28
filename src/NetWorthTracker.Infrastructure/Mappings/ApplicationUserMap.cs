@@ -36,6 +36,9 @@ public class ApplicationUserMap : ClassMap<ApplicationUser>
         Map(x => x.AuthenticatorKey).Length(500);
         Map(x => x.RecoveryCodes).Length(int.MaxValue);
 
+        // Locale preference
+        Map(x => x.Locale).Length(10).Not.Nullable().Default("'en-US'");
+
         HasMany(x => x.Accounts)
             // Key column set by convention (UserId for SQLite, user_id for PostgreSQL)
             .Inverse()

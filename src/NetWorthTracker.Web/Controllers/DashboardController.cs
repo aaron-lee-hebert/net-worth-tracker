@@ -23,12 +23,13 @@ public class DashboardController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(bool firstAccount = false)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
         var accounts = await _accountRepository.GetActiveAccountsByUserIdAsync(userId);
 
         var accountList = accounts.ToList();
+        var isFirstTimeUser = accountList.Count == 0;
 
         var totalsByCategory = accountList
             .GroupBy(a => a.AccountType.GetCategory())
@@ -59,7 +60,9 @@ public class DashboardController : Controller
                     CurrentBalance = a.CurrentBalance,
                     Institution = a.Institution
                 })
-                .ToList()
+                .ToList(),
+            IsFirstTimeUser = isFirstTimeUser,
+            ShowFirstAccountSuccess = firstAccount && accountList.Count == 1
         };
 
         return View(viewModel);

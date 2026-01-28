@@ -1,6 +1,209 @@
-﻿@{
+@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="page-title">Privacy Policy</h1>
+        <p class="text-muted mb-4">Last updated: @DateTime.UtcNow.ToString("MMMM d, yyyy")</p>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="text-success"><i class="bi bi-shield-check me-2"></i>Our Commitment</h5>
+                <p class="mb-0">
+                    Net Worth Tracker is designed with privacy as a core principle. We collect only what is necessary
+                    to provide the service and never sell or share your financial data with third parties.
+                </p>
+            </div>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>This policy applies to both deployment options:</strong>
+            <ul class="mb-0 mt-2">
+                <li><strong>Hosted Service (SaaS):</strong> We manage the infrastructure and store your data</li>
+                <li><strong>Self-Hosted:</strong> You run the software on your own infrastructure</li>
+            </ul>
+            Sections marked with <span class="badge bg-primary">SaaS</span> or <span class="badge bg-secondary">Self-Hosted</span> apply specifically to that deployment type.
+        </div>
+
+        <h2>1. Data We Collect</h2>
+        <p>When you use Net Worth Tracker, the following data is collected:</p>
+        <ul>
+            <li><strong>Account Information:</strong> Email address and password (securely hashed) for authentication</li>
+            <li><strong>Profile Information:</strong> Display name (optional)</li>
+            <li><strong>Financial Data:</strong> Account names, balances, and balance history that you manually enter</li>
+            <li><strong>Preferences:</strong> Notification settings, alert configurations, and forecast assumptions</li>
+            <li><strong>Subscription Data:</strong> <span class="badge bg-primary">SaaS</span> Subscription status and billing history (payment details are stored by Stripe, not us)</li>
+        </ul>
+
+        <h5>What We Do NOT Collect</h5>
+        <ul>
+            <li>We do not connect to your bank accounts or financial institutions</li>
+            <li>We do not collect analytics or usage tracking data</li>
+            <li>We do not use advertising or third-party tracking cookies</li>
+            <li>We do not access your actual account numbers at financial institutions</li>
+        </ul>
+
+        <h2>2. Data Storage & Location</h2>
+
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-cloud me-2"></i>Hosted Service (SaaS)
+            </div>
+            <div class="card-body">
+                <p>When you use our hosted service:</p>
+                <ul>
+                    <li><strong>Database:</strong> Your data is stored in a managed PostgreSQL database hosted on secure cloud infrastructure</li>
+                    <li><strong>Encryption:</strong> Data is encrypted at rest and in transit using industry-standard encryption (TLS 1.2+, AES-256)</li>
+                    <li><strong>Backups:</strong> Automated daily backups with 30-day retention</li>
+                    <li><strong>Location:</strong> Data is stored in data centers located in the United States</li>
+                    <li><strong>Access:</strong> Only authorized personnel have access to infrastructure; your financial data is never accessed unless required to resolve a support request you initiate</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-server me-2"></i>Self-Hosted
+            </div>
+            <div class="card-body">
+                <p>When you self-host Net Worth Tracker:</p>
+                <ul>
+                    <li><strong>Complete Control:</strong> All data remains on your own server or infrastructure</li>
+                    <li><strong>No Access:</strong> We have absolutely no access to your data, database, or server</li>
+                    <li><strong>Your Responsibility:</strong> You are responsible for backups, security, encryption, and compliance with applicable laws</li>
+                    <li><strong>Database Choice:</strong> You choose where to store data (SQLite file or your own PostgreSQL server)</li>
+                </ul>
+                <p class="mb-0 text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    If you host this service for others, you become the data controller and should establish your own privacy policy.
+                </p>
+            </div>
+        </div>
+
+        <h2>3. How We Use Your Data</h2>
+        <p>Your data is used solely to:</p>
+        <ul>
+            <li>Provide the net worth tracking service and its features</li>
+            <li>Generate forecasts and reports based on your entered data</li>
+            <li>Send transactional emails (password reset, email verification)</li>
+            <li>Send notification emails you have opted into (monthly snapshots, alerts)</li>
+            <li><span class="badge bg-primary">SaaS</span> Process subscription payments and manage your account</li>
+        </ul>
+
+        <h2>4. Data Sharing</h2>
+        <p>
+            <strong>We do not sell, trade, or share your personal or financial data with third parties for marketing purposes.</strong>
+        </p>
+
+        <h5><span class="badge bg-primary">SaaS</span> Third-Party Service Providers</h5>
+        <p>Our hosted service uses the following third-party providers:</p>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Provider</th>
+                    <th>Purpose</th>
+                    <th>Data Shared</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe</a></td>
+                    <td>Payment processing</td>
+                    <td>Email, subscription status (no financial tracking data)</td>
+                </tr>
+                <tr>
+                    <td><a href="https://sendgrid.com/policies/privacy/" target="_blank" rel="noopener">SendGrid</a></td>
+                    <td>Email delivery</td>
+                    <td>Email address, email content (no financial data in emails)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h5><span class="badge bg-secondary">Self-Hosted</span> No Third Parties</h5>
+        <p>
+            Self-hosted installations make no external API calls and share no data with us or any third party.
+            If you configure email (SendGrid), you establish that relationship directly.
+        </p>
+
+        <h2>5. Data Security</h2>
+        <p>We implement multiple layers of security:</p>
+        <ul>
+            <li>Passwords hashed using ASP.NET Core Identity (PBKDF2 with HMAC-SHA256)</li>
+            <li>HTTPS/TLS encryption for all communications</li>
+            <li>CSRF protection on all forms</li>
+            <li>Rate limiting on authentication endpoints</li>
+            <li>Account lockout after 5 failed login attempts</li>
+            <li>Optional multi-factor authentication (TOTP)</li>
+            <li>Security headers (HSTS, X-Frame-Options, X-Content-Type-Options)</li>
+        </ul>
+
+        <h2>6. Data Retention</h2>
+
+        <h5><span class="badge bg-primary">SaaS</span> Hosted Service</h5>
+        <ul>
+            <li><strong>Active Accounts:</strong> Data retained while your account is active</li>
+            <li><strong>Account Deletion:</strong> All data permanently deleted within 30 days of account deletion</li>
+            <li><strong>Expired Subscriptions:</strong> Data retained in read-only state; you can export or delete at any time</li>
+            <li><strong>Backups:</strong> Deleted data may persist in backups for up to 30 days</li>
+        </ul>
+
+        <h5><span class="badge bg-secondary">Self-Hosted</span></h5>
+        <p>You control data retention entirely. Data exists until you delete it or remove the installation.</p>
+
+        <h2>7. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li><strong>Access:</strong> View all data stored in your account at any time</li>
+            <li><strong>Export:</strong> Download your data as CSV files (Accounts, Reports, Net Worth History)</li>
+            <li><strong>Correction:</strong> Edit any of your information through the application</li>
+            <li><strong>Deletion:</strong> Permanently delete your account and all associated data via Settings</li>
+            <li><strong>Portability:</strong> Export your data and use it elsewhere</li>
+        </ul>
+
+        <h2>8. Cookies</h2>
+        <p>
+            We use only essential cookies required for authentication and session management:
+        </p>
+        <ul>
+            <li><strong>.AspNetCore.Identity.Application:</strong> Authentication session cookie</li>
+            <li><strong>.AspNetCore.Antiforgery.*:</strong> CSRF protection token</li>
+        </ul>
+        <p>We do not use advertising, analytics, or third-party tracking cookies.</p>
+
+        <h2>9. Children's Privacy</h2>
+        <p>
+            Net Worth Tracker is not intended for individuals under 18 years of age. We do not knowingly
+            collect personal information from children.
+        </p>
+
+        <h2>10. International Users</h2>
+        <p>
+            <span class="badge bg-primary">SaaS</span> If you access our hosted service from outside the United States,
+            your data will be transferred to and stored in the United States. By using the service, you consent to this transfer.
+        </p>
+        <p>
+            <span class="badge bg-secondary">Self-Hosted</span> You control where your data is stored and are responsible
+            for compliance with local data protection laws (GDPR, etc.).
+        </p>
+
+        <h2>11. Changes to This Policy</h2>
+        <p>
+            We may update this Privacy Policy from time to time. Changes will be posted on this page with an
+            updated "Last updated" date. For material changes, we will notify users via email.
+        </p>
+
+        <h2>12. Contact</h2>
+        <p>
+            For privacy-related questions or to exercise your data rights, please contact us through our
+            <a href="https://github.com/aaron-lee-hebert/net-worth-tracker" target="_blank" rel="noopener">GitHub repository</a>.
+        </p>
+
+        <div class="d-flex gap-3 mt-4">
+            <a asp-action="Terms" class="btn btn-outline-primary">
+                <i class="bi bi-file-text me-2"></i>Terms of Service
+            </a>
+        </div>
+    </div>
+</div>

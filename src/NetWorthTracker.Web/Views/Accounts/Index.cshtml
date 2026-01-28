@@ -13,7 +13,15 @@
         <h2 class="page-title mb-1" style="border-bottom: none;">Accounts</h2>
         <p class="text-muted mb-0">Manage your financial accounts</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary">Add Account</a>
+    <div class="d-flex gap-2">
+        @if (Model.Any())
+        {
+            <a asp-action="ExportAccountsCsv" asp-route-category="@currentCategory" class="btn btn-outline-primary">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+        }
+        <a asp-action="Create" class="btn btn-primary">Add Account</a>
+    </div>
 </div>
 
 <div class="card">
@@ -82,14 +90,14 @@
                                     }
                                 </td>
                                 <td class="text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        <a asp-action="Details" asp-route-id="@account.Id" class="btn btn-outline-primary" title="View">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a asp-action="Details" asp-route-id="@account.Id" class="btn btn-sm btn-outline-primary" title="View">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a asp-action="Edit" asp-route-id="@account.Id" class="btn btn-outline-secondary" title="Edit">
+                                        <a asp-action="Edit" asp-route-id="@account.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a asp-action="Delete" asp-route-id="@account.Id" class="btn btn-outline-danger" title="Delete">
+                                        <a asp-action="Delete" asp-route-id="@account.Id" class="btn btn-sm btn-outline-danger" title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>

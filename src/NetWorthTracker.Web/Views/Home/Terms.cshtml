@@ -1,0 +1,318 @@
+@{
+    ViewData["Title"] = "Terms of Service";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1 class="page-title">Terms of Service</h1>
+        <p class="text-muted mb-4">Last updated: @DateTime.UtcNow.ToString("MMMM d, yyyy")</p>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5><i class="bi bi-file-text me-2"></i>Agreement</h5>
+                <p class="mb-0">
+                    By using Net Worth Tracker, you agree to these Terms of Service. If you do not agree,
+                    please do not use the service.
+                </p>
+            </div>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>These terms cover two deployment options:</strong>
+            <ul class="mb-0 mt-2">
+                <li><strong>Hosted Service (SaaS):</strong> Subscription-based service we manage at <code>app.networthtracker.com</code></li>
+                <li><strong>Self-Hosted:</strong> Open-source software you run on your own infrastructure</li>
+            </ul>
+            Sections marked with <span class="badge bg-primary">SaaS</span> or <span class="badge bg-secondary">Self-Hosted</span> apply specifically to that deployment type.
+        </div>
+
+        <h2>1. Description of Service</h2>
+        <p>
+            Net Worth Tracker is a personal finance tracking application that allows you to manually record
+            and monitor your assets, liabilities, and net worth over time.
+        </p>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-cloud me-2"></i>Hosted Service (SaaS)
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li>Fully managed cloud service</li>
+                            <li>Data stored on managed PostgreSQL</li>
+                            <li>Automatic updates and maintenance</li>
+                            <li>Daily backups included</li>
+                            <li>Requires paid subscription after trial</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="bi bi-server me-2"></i>Self-Hosted
+                    </div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            <li>Free, open-source (MIT License)</li>
+                            <li>Run on your own infrastructure</li>
+                            <li>Complete data ownership</li>
+                            <li>You manage updates and backups</li>
+                            <li>No subscription required</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>2. Account Responsibilities</h2>
+        <p>You are responsible for:</p>
+        <ul>
+            <li>Maintaining the confidentiality of your account credentials</li>
+            <li>All activities that occur under your account</li>
+            <li>Providing accurate information when registering</li>
+            <li>Notifying us immediately of any unauthorized access</li>
+            <li>Using a strong, unique password and enabling MFA when available</li>
+        </ul>
+
+        <h2>3. Acceptable Use</h2>
+        <p>You agree NOT to:</p>
+        <ul>
+            <li>Use the service for any illegal purpose</li>
+            <li>Attempt to gain unauthorized access to any part of the service</li>
+            <li>Interfere with or disrupt the service or servers</li>
+            <li>Use the service to store or transmit malicious code</li>
+            <li>Share your account with others or create accounts for others</li>
+            <li><span class="badge bg-primary">SaaS</span> Circumvent subscription requirements or payment obligations</li>
+        </ul>
+
+        <h2>4. Subscription and Payments</h2>
+
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <span class="badge bg-primary">SaaS</span> Hosted Service Billing
+            </div>
+            <div class="card-body">
+                <h6>Pricing</h6>
+                <ul>
+                    <li>Subscriptions are billed at <strong>$20 per year</strong></li>
+                    <li>Payments processed securely through Stripe</li>
+                    <li>We do not store your credit card information</li>
+                </ul>
+
+                <h6>Trial Period</h6>
+                <ul>
+                    <li>New accounts receive a <strong>14-day free trial</strong></li>
+                    <li>Full access to all features during trial</li>
+                    <li>No credit card required to start trial</li>
+                </ul>
+
+                <h6>After Trial / Subscription Expiration</h6>
+                <ul>
+                    <li>Your data remains accessible in <strong>read-only mode</strong></li>
+                    <li>You can view and export your data at any time</li>
+                    <li>Adding or modifying data requires an active subscription</li>
+                    <li>Your data is never deleted due to non-payment</li>
+                </ul>
+
+                <h6>Renewals and Cancellations</h6>
+                <ul>
+                    <li>Subscriptions automatically renew unless canceled</li>
+                    <li>Cancel any time through Settings or Stripe customer portal</li>
+                    <li>Access continues until the end of your paid period</li>
+                    <li>No refunds for unused portions of billing periods</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <span class="badge bg-secondary">Self-Hosted</span> No Payment Required
+            </div>
+            <div class="card-body">
+                <p class="mb-0">
+                    Self-hosted installations are free under the MIT License. You are responsible for your
+                    own hosting costs, infrastructure, and maintenance.
+                </p>
+            </div>
+        </div>
+
+        <h2>5. Data and Privacy</h2>
+        <p>
+            Your use of the service is governed by our <a asp-action="Privacy">Privacy Policy</a>.
+        </p>
+
+        <h5><span class="badge bg-primary">SaaS</span> Hosted Service</h5>
+        <ul>
+            <li>Your data is stored on our managed PostgreSQL database</li>
+            <li>We act as a data processor on your behalf</li>
+            <li>Data is encrypted at rest and in transit</li>
+            <li>You can export or delete your data at any time</li>
+        </ul>
+
+        <h5><span class="badge bg-secondary">Self-Hosted</span></h5>
+        <ul>
+            <li>You retain complete ownership and control of all data</li>
+            <li>We have no access to your data or systems</li>
+            <li>You are the data controller and responsible for compliance</li>
+            <li>You are responsible for security, backups, and data protection</li>
+        </ul>
+
+        <h2>6. Service Availability</h2>
+
+        <h5><span class="badge bg-primary">SaaS</span> Hosted Service</h5>
+        <p>
+            We strive for high availability but do not guarantee uninterrupted access. The service may be
+            temporarily unavailable for:
+        </p>
+        <ul>
+            <li>Scheduled maintenance (communicated in advance when possible)</li>
+            <li>Emergency security updates</li>
+            <li>Circumstances beyond our control (hosting provider outages, etc.)</li>
+        </ul>
+
+        <h5><span class="badge bg-secondary">Self-Hosted</span></h5>
+        <p>
+            Availability depends entirely on your infrastructure. We provide no uptime guarantees or
+            support for self-hosted installations.
+        </p>
+
+        <h2>7. Support</h2>
+
+        <h5><span class="badge bg-primary">SaaS</span> Hosted Service</h5>
+        <p>
+            Support is provided through our GitHub repository. We aim to respond to issues in a timely
+            manner but do not guarantee response times.
+        </p>
+
+        <h5><span class="badge bg-secondary">Self-Hosted</span></h5>
+        <p>
+            Community support is available through GitHub. No dedicated support is provided for
+            self-hosted installations.
+        </p>
+
+        <h2>8. Disclaimer of Warranties</h2>
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-exclamation-triangle me-2"></i>Important</h5>
+            <p>
+                <strong>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.</strong>
+            </p>
+            <p>
+                Net Worth Tracker is a <strong>tracking tool only</strong>. It does not provide:
+            </p>
+            <ul>
+                <li>Financial advice or recommendations</li>
+                <li>Investment guidance</li>
+                <li>Tax advice</li>
+                <li>Professional accounting services</li>
+            </ul>
+            <p class="mb-0">
+                <strong>Projections and forecasts are estimates for informational purposes only.</strong>
+                Actual results will vary based on market conditions, interest rates, and your financial decisions.
+                Past performance does not guarantee future results.
+                <strong>Always consult a qualified financial advisor for personalized guidance.</strong>
+            </p>
+        </div>
+
+        <h2>9. Limitation of Liability</h2>
+        <p>
+            To the maximum extent permitted by law, we shall not be liable for any indirect, incidental,
+            special, consequential, or punitive damages, including but not limited to:
+        </p>
+        <ul>
+            <li>Loss of profits, data, or other intangible losses</li>
+            <li>Financial decisions made based on data or forecasts in the service</li>
+            <li>Service interruptions, errors, or data loss</li>
+            <li>Unauthorized access to your account due to weak credentials</li>
+            <li>Any damages arising from your use or inability to use the service</li>
+        </ul>
+        <p>
+            <span class="badge bg-primary">SaaS</span> Our total liability shall not exceed the amount you
+            paid for the service in the twelve (12) months preceding the claim.
+        </p>
+        <p>
+            <span class="badge bg-secondary">Self-Hosted</span> The software is provided under the MIT License
+            with no warranty. Use at your own risk.
+        </p>
+
+        <h2>10. Indemnification</h2>
+        <p>
+            You agree to indemnify and hold harmless Net Worth Tracker, its developers, and affiliates from
+            any claims, damages, or expenses arising from:
+        </p>
+        <ul>
+            <li>Your use of the service</li>
+            <li>Your violation of these terms</li>
+            <li>Your violation of any third-party rights</li>
+            <li><span class="badge bg-secondary">Self-Hosted</span> Your operation of the software for others</li>
+        </ul>
+
+        <h2>11. Termination</h2>
+
+        <h5>By You</h5>
+        <ul>
+            <li>You may delete your account at any time through Settings</li>
+            <li>Account deletion is immediate and irreversible</li>
+            <li><span class="badge bg-primary">SaaS</span> No refund for unused subscription time</li>
+        </ul>
+
+        <h5>By Us</h5>
+        <ul>
+            <li>We may suspend or terminate accounts that violate these terms</li>
+            <li>We will provide notice unless immediate action is required for security</li>
+            <li>Upon termination, your data will be deleted according to our retention policy</li>
+        </ul>
+
+        <h2>12. Open Source License</h2>
+        <p>
+            The Net Worth Tracker software is open source under the <strong>MIT License</strong>.
+        </p>
+        <ul>
+            <li>You may use, copy, modify, and distribute the software</li>
+            <li>The license terms apply to the software code itself</li>
+            <li>These Terms of Service govern your use of the hosted service</li>
+            <li>Self-hosted users are bound by the MIT License, not these terms (except Section 8-9 disclaimers)</li>
+        </ul>
+
+        <h2>13. Changes to Terms</h2>
+        <p>
+            We may update these Terms of Service from time to time. Changes will be posted on this page
+            with an updated "Last updated" date.
+        </p>
+        <ul>
+            <li>Continued use after changes constitutes acceptance</li>
+            <li>Material changes will be communicated via email to <span class="badge bg-primary">SaaS</span> users</li>
+            <li>If you disagree with changes, you may delete your account</li>
+        </ul>
+
+        <h2>14. Governing Law</h2>
+        <p>
+            These terms shall be governed by and construed in accordance with the laws of the State of
+            Louisiana, United States, without regard to conflict of law principles.
+        </p>
+
+        <h2>15. Severability</h2>
+        <p>
+            If any provision of these terms is found to be unenforceable, the remaining provisions will
+            continue in full force and effect.
+        </p>
+
+        <h2>16. Contact</h2>
+        <p>
+            For questions about these Terms of Service, please contact us through our
+            <a href="https://github.com/aaron-lee-hebert/net-worth-tracker" target="_blank" rel="noopener">GitHub repository</a>.
+        </p>
+
+        <div class="d-flex gap-3 mt-4">
+            <a asp-action="Privacy" class="btn btn-outline-primary">
+                <i class="bi bi-shield-check me-2"></i>Privacy Policy
+            </a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-primary">
+                <i class="bi bi-person-plus me-2"></i>Create Account
+            </a>
+        </div>
+    </div>
+</div>

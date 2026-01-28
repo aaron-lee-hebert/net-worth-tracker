@@ -43,6 +43,9 @@ public class RegisterViewModel
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [Display(Name = "Region")]
+    public string Locale { get; set; } = "en-US";
 }
 
 public class LoginWith2faViewModel
@@ -69,4 +72,37 @@ public class LoginWithRecoveryCodeViewModel
     public string RecoveryCode { get; set; } = string.Empty;
 
     public string? ReturnUrl { get; set; }
+}
+
+public class ForgotPasswordViewModel
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordViewModel
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 8)]
+    [DataType(DataType.Password)]
+    [Display(Name = "New Password")]
+    public string Password { get; set; } = string.Empty;
+
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirm Password")]
+    [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+
+    public string Token { get; set; } = string.Empty;
+}
+
+public class EmailVerificationViewModel
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
 }

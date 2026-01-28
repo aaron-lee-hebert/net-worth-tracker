@@ -2,8 +2,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NetWorthTracker.Core;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
+using NetWorthTracker.Core.Services;
 
 namespace NetWorthTracker.Web.Controllers;
 
@@ -14,6 +16,8 @@ public class SettingsController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IAccountRepository _accountRepository;
     private readonly IBalanceHistoryRepository _balanceHistoryRepository;
+    private readonly IAlertService _alertService;
+    private readonly IEmailService _emailService;
     private readonly ILogger<SettingsController> _logger;
 
     public SettingsController(
@@ -21,12 +25,16 @@ public class SettingsController : Controller
         SignInManager<ApplicationUser> signInManager,
         IAccountRepository accountRepository,
         IBalanceHistoryRepository balanceHistoryRepository,
+        IAlertService alertService,
+        IEmailService emailService,
         ILogger<SettingsController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _accountRepository = accountRepository;
         _balanceHistoryRepository = balanceHistoryRepository;
+        _alertService = alertService;
+        _emailService = emailService;
         _logger = logger;
     }
 
@@ -35,7 +43,43 @@ public class SettingsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
+        var alertConfig = await _alertService.GetOrCreateConfigurationAsync(user.Id);
+        ViewBag.AlertConfig = alertConfig;
+        ViewBag.EmailConfigured = _emailService.IsConfigured;
+        ViewBag.SupportedLocales = SupportedLocales.Locales.Select(l => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+        {
+            Value = l.Key,
+            Text = l.Value,
+            Selected = l.Key == user.Locale
+        });
+
         return View(user);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateAlertSettings(
+        bool alertsEnabled,
+        decimal netWorthChangeThreshold,
+        int cashRunwayMonths,
+        bool monthlySnapshotEnabled)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        var config = await _alertService.GetOrCreateConfigurationAsync(user.Id);
+
+        config.AlertsEnabled = alertsEnabled;
+        config.NetWorthChangeThreshold = Math.Max(0, Math.Min(100, netWorthChangeThreshold));
+        config.CashRunwayMonths = Math.Max(0, Math.Min(24, cashRunwayMonths));
+        config.MonthlySnapshotEnabled = monthlySnapshotEnabled;
+
+        await _alertService.UpdateConfigurationAsync(config);
+
+        _logger.LogInformation("Updated alert settings for user {UserId}", user.Id);
+        TempData["SuccessMessage"] = "Notification settings updated successfully.";
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
@@ -115,13 +159,14 @@ public class SettingsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateProfile(string firstName, string lastName)
+    public async Task<IActionResult> UpdateProfile(string firstName, string lastName, string locale)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
         user.FirstName = firstName;
         user.LastName = lastName;
+        user.Locale = SupportedLocales.IsSupported(locale) ? locale : "en-US";
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userManager.UpdateAsync(user);

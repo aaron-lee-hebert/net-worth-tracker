@@ -40,3 +40,20 @@ public class ForecastSummary
     public decimal ProjectedLiabilities { get; set; }
     public DateTime ProjectionDate { get; set; }
 }
+
+public class ForecastAssumptionsViewModel
+{
+    public decimal InvestmentGrowthRate { get; set; } = 7.0m;   // Displayed as percentage
+    public decimal RealEstateGrowthRate { get; set; } = 2.0m;
+    public decimal BankingGrowthRate { get; set; } = 0.5m;
+    public decimal BusinessGrowthRate { get; set; } = 3.0m;
+    public decimal VehicleDepreciationRate { get; set; } = 15.0m;
+    public bool HasCustomOverrides { get; set; }
+
+    // Defaults for display
+    public static decimal DefaultInvestmentRate => 7.0m;
+    public static decimal DefaultRealEstateRate => 2.0m;
+    public static decimal DefaultBankingRate => 0.5m;
+    public static decimal DefaultBusinessRate => 3.0m;
+    public static decimal DefaultVehicleRate => 15.0m;
+}

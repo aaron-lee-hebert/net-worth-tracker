@@ -95,9 +95,9 @@ function renderChart(data, viewMode) {
                             if (context.parsed.y !== null) {
                                 // Show absolute value for liabilities in tooltip
                                 const value = context.parsed.y;
-                                label += new Intl.NumberFormat('en-US', {
+                                label += new Intl.NumberFormat(window.userLocale || 'en-US', {
                                     style: 'currency',
-                                    currency: 'USD'
+                                    currency: window.userCurrency || 'USD'
                                 }).format(Math.abs(value));
                                 if (value < 0) {
                                     label += ' (liability)';
@@ -125,9 +125,9 @@ function renderChart(data, viewMode) {
                     },
                     ticks: {
                         callback: function(value) {
-                            return new Intl.NumberFormat('en-US', {
+                            return new Intl.NumberFormat(window.userLocale || 'en-US', {
                                 style: 'currency',
-                                currency: 'USD',
+                                currency: window.userCurrency || 'USD',
                                 minimumFractionDigits: 0,
                                 maximumFractionDigits: 0
                             }).format(value);

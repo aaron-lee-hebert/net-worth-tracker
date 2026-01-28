@@ -1,4 +1,15 @@
-# Net Worth Tracker
+<p align="center">
+  <img src="docs/images/logo.svg" alt="Net Worth Tracker" width="400">
+</p>
+
+<p align="center">
+  <a href="https://github.com/aaron-lee-hebert/net-worth-tracker/actions/workflows/ci.yml">
+    <img src="https://github.com/aaron-lee-hebert/net-worth-tracker/actions/workflows/ci.yml/badge.svg" alt="Build Status">
+  </a>
+  <a href="https://codecov.io/gh/aaron-lee-hebert/net-worth-tracker">
+    <img src="https://codecov.io/gh/aaron-lee-hebert/net-worth-tracker/graph/badge.svg" alt="Code Coverage">
+  </a>
+</p>
 
 A distinguished, self-hosted application for the discerning individual who values both privacy and a clear view of their financial standing. Track your assets, liabilities, and accounts without surrendering your data to third parties.
 

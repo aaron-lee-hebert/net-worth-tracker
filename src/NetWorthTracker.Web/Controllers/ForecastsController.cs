@@ -6,6 +6,7 @@ using NetWorthTracker.Core.Enums;
 using NetWorthTracker.Core.Extensions;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.ViewModels;
+using ForecastAssumptions = NetWorthTracker.Core.Entities.ForecastAssumptions;
 
 namespace NetWorthTracker.Web.Controllers;
 
@@ -14,46 +15,37 @@ public class ForecastsController : Controller
 {
     private readonly IAccountRepository _accountRepository;
     private readonly IBalanceHistoryRepository _balanceHistoryRepository;
+    private readonly IForecastAssumptionsRepository _assumptionsRepository;
     private readonly UserManager<ApplicationUser> _userManager;
 
     private const int DefaultForecastMonths = 60; // 5 years forward
     private const int MinHistoricalMonths = 3; // Minimum data needed for forecasting
 
-    // Conservative annual growth/depreciation assumptions
-    // These are used when historical trend data is insufficient
-    private static class Assumptions
+    // Default assumptions (used as fallbacks)
+    private static class DefaultAssumptions
     {
-        // Investments: 7% annual return (historical average for diversified equity portfolios)
         public const decimal InvestmentAnnualGrowth = 0.07m;
-
-        // Real Estate: 2% annual appreciation (at or slightly below inflation)
         public const decimal RealEstateAnnualGrowth = 0.02m;
-
-        // Vehicles: 15% annual depreciation (aggressive depreciation assumption)
         public const decimal VehicleAnnualDepreciation = 0.15m;
-        public const decimal VehicleFloorPercent = 0.10m; // Floor at 10% of original value
-
-        // Banking (Savings): 0.5% annual growth (conservative, below typical savings rates)
+        public const decimal VehicleFloorPercent = 0.10m;
         public const decimal SavingsAnnualGrowth = 0.005m;
-
-        // Business: 3% annual growth (conservative)
         public const decimal BusinessAnnualGrowth = 0.03m;
-
-        // Debt paydown: Assume minimum 1% monthly payment if not actively paying down
         public const decimal DebtMinimumMonthlyPayment = 0.01m;
-
-        // For long-term forecasts, apply a decay factor to growth rates
-        // This accounts for uncertainty over longer time horizons
-        public const decimal LongTermDecayPerYear = 0.95m; // 5% reduction per year after year 5
+        public const decimal LongTermDecayPerYear = 0.95m;
     }
+
+    // Current user's assumptions (set per request)
+    private ForecastAssumptions? _userAssumptions;
 
     public ForecastsController(
         IAccountRepository accountRepository,
         IBalanceHistoryRepository balanceHistoryRepository,
+        IForecastAssumptionsRepository assumptionsRepository,
         UserManager<ApplicationUser> userManager)
     {
         _accountRepository = accountRepository;
         _balanceHistoryRepository = balanceHistoryRepository;
+        _assumptionsRepository = assumptionsRepository;
         _userManager = userManager;
     }
 
@@ -67,6 +59,10 @@ public class ForecastsController : Controller
     public async Task<IActionResult> GetForecastData(int forecastMonths = DefaultForecastMonths)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
+
+        // Load user's custom assumptions
+        _userAssumptions = await _assumptionsRepository.GetByUserIdAsync(userId);
+
         var accounts = (await _accountRepository.GetActiveAccountsByUserIdAsync(userId)).ToList();
 
         if (!accounts.Any())
@@ -88,6 +84,60 @@ public class ForecastsController : Controller
         var viewModel = BuildForecast(accounts, allHistory, forecastQuarters);
         viewModel.ForecastMonths = forecastMonths; // Keep for display
         return Json(viewModel);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAssumptions()
+    {
+        var userId = Guid.Parse(_userManager.GetUserId(User)!);
+        var assumptions = await _assumptionsRepository.GetByUserIdAsync(userId);
+
+        var viewModel = new ForecastAssumptionsViewModel
+        {
+            InvestmentGrowthRate = (assumptions?.GetInvestmentRate() ?? ForecastAssumptions.Defaults.InvestmentGrowthRate) * 100,
+            RealEstateGrowthRate = (assumptions?.GetRealEstateRate() ?? ForecastAssumptions.Defaults.RealEstateGrowthRate) * 100,
+            BankingGrowthRate = (assumptions?.GetBankingRate() ?? ForecastAssumptions.Defaults.BankingGrowthRate) * 100,
+            BusinessGrowthRate = (assumptions?.GetBusinessRate() ?? ForecastAssumptions.Defaults.BusinessGrowthRate) * 100,
+            VehicleDepreciationRate = (assumptions?.GetVehicleRate() ?? ForecastAssumptions.Defaults.VehicleDepreciationRate) * 100,
+            HasCustomOverrides = assumptions?.HasCustomOverrides() ?? false
+        };
+
+        return Json(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveAssumptions([FromBody] ForecastAssumptionsViewModel model)
+    {
+        var userId = Guid.Parse(_userManager.GetUserId(User)!);
+        var assumptions = await _assumptionsRepository.GetOrCreateAsync(userId);
+
+        // Convert percentages to decimals
+        assumptions.InvestmentGrowthRate = model.InvestmentGrowthRate / 100;
+        assumptions.RealEstateGrowthRate = model.RealEstateGrowthRate / 100;
+        assumptions.BankingGrowthRate = model.BankingGrowthRate / 100;
+        assumptions.BusinessGrowthRate = model.BusinessGrowthRate / 100;
+        assumptions.VehicleDepreciationRate = model.VehicleDepreciationRate / 100;
+
+        await _assumptionsRepository.UpdateAsync(assumptions);
+
+        return Json(new { success = true });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetAssumptions()
+    {
+        var userId = Guid.Parse(_userManager.GetUserId(User)!);
+        var assumptions = await _assumptionsRepository.GetByUserIdAsync(userId);
+
+        if (assumptions != null)
+        {
+            assumptions.ResetToDefaults();
+            await _assumptionsRepository.UpdateAsync(assumptions);
+        }
+
+        return Json(new { success = true });
     }
 
     private ForecastViewModel BuildForecast(List<Account> accounts, List<BalanceHistory> allHistory, int forecastQuarters)
@@ -315,6 +365,13 @@ public class ForecastsController : Controller
         var category = accountType.GetCategory();
         var yearsAhead = (double)quartersAhead / 4.0;
 
+        // Get rates from user assumptions or defaults
+        var investmentRate = _userAssumptions?.GetInvestmentRate() ?? DefaultAssumptions.InvestmentAnnualGrowth;
+        var realEstateRate = _userAssumptions?.GetRealEstateRate() ?? DefaultAssumptions.RealEstateAnnualGrowth;
+        var bankingRate = _userAssumptions?.GetBankingRate() ?? DefaultAssumptions.SavingsAnnualGrowth;
+        var businessRate = _userAssumptions?.GetBusinessRate() ?? DefaultAssumptions.BusinessAnnualGrowth;
+        var vehicleRate = _userAssumptions?.GetVehicleRate() ?? DefaultAssumptions.VehicleAnnualDepreciation;
+
         switch (category)
         {
             case AccountCategory.SecuredDebt:
@@ -335,29 +392,28 @@ public class ForecastsController : Controller
 
             case AccountCategory.Investment:
                 // Investments: Compound annual growth (Rule of 72)
-                // At 7% annual return, doubles in ~10.3 years
-                var investmentFactor = Math.Pow(1.0 + (double)Assumptions.InvestmentAnnualGrowth, yearsAhead);
+                var investmentFactor = Math.Pow(1.0 + (double)investmentRate, yearsAhead);
                 return currentBalance * (decimal)investmentFactor;
 
             case AccountCategory.RealEstate:
-                // Real estate: Compound 2% annual appreciation
-                var realEstateFactor = Math.Pow(1.0 + (double)Assumptions.RealEstateAnnualGrowth, yearsAhead);
+                // Real estate: Compound appreciation
+                var realEstateFactor = Math.Pow(1.0 + (double)realEstateRate, yearsAhead);
                 return currentBalance * (decimal)realEstateFactor;
 
             case AccountCategory.VehiclesAndProperty:
-                // Vehicles: Compound 15% annual depreciation, floor at 10%
-                var vehicleFactor = Math.Pow(1.0 - (double)Assumptions.VehicleAnnualDepreciation, yearsAhead);
+                // Vehicles: Compound depreciation, floor at 10%
+                var vehicleFactor = Math.Pow(1.0 - (double)vehicleRate, yearsAhead);
                 var vehicleBalance = currentBalance * (decimal)vehicleFactor;
-                return Math.Max(currentBalance * Assumptions.VehicleFloorPercent, vehicleBalance);
+                return Math.Max(currentBalance * DefaultAssumptions.VehicleFloorPercent, vehicleBalance);
 
             case AccountCategory.Banking:
-                // Banking: Compound 0.5% annual growth
-                var bankingFactor = Math.Pow(1.0 + (double)Assumptions.SavingsAnnualGrowth, yearsAhead);
+                // Banking: Compound growth
+                var bankingFactor = Math.Pow(1.0 + (double)bankingRate, yearsAhead);
                 return Math.Max(0, currentBalance * (decimal)bankingFactor);
 
             case AccountCategory.Business:
-                // Business: Compound 3% annual growth
-                var businessFactor = Math.Pow(1.0 + (double)Assumptions.BusinessAnnualGrowth, yearsAhead);
+                // Business: Compound growth
+                var businessFactor = Math.Pow(1.0 + (double)businessRate, yearsAhead);
                 return Math.Max(0, currentBalance * (decimal)businessFactor);
 
             default:
