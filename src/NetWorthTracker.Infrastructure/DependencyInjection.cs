@@ -5,9 +5,11 @@ using Microsoft.Extensions.Logging;
 using NHibernate;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
+using NetWorthTracker.Core.Services;
 using NetWorthTracker.Infrastructure.Data;
 using NetWorthTracker.Infrastructure.Identity;
 using NetWorthTracker.Infrastructure.Repositories;
+using NetWorthTracker.Infrastructure.Services;
 
 namespace NetWorthTracker.Infrastructure;
 
@@ -29,6 +31,25 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
+
+        // Email service (SendGrid)
+        services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
+        services.AddScoped<IEmailService, SendGridEmailService>();
+
+        // Stripe service
+        services.Configure<StripeSettings>(configuration.GetSection("Stripe"));
+        services.AddScoped<IStripeService, StripeService>();
+
+        // Subscription repository
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+
+        // Alert repositories and service
+        services.AddScoped<IAlertConfigurationRepository, AlertConfigurationRepository>();
+        services.AddScoped<IMonthlySnapshotRepository, MonthlySnapshotRepository>();
+        services.AddScoped<IAlertService, AlertService>();
+
+        // Forecast assumptions repository
+        services.AddScoped<IForecastAssumptionsRepository, ForecastAssumptionsRepository>();
 
         services.AddScoped<DemoDataSeeder>();
 

@@ -10,9 +10,14 @@
     </div>
     @if (Model.Quarters.Any())
     {
-        <a asp-action="DownloadCsv" class="btn btn-primary">
-            Download CSV
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-action="DownloadCsv" class="btn btn-primary">
+                <i class="bi bi-download"></i> Quarterly CSV
+            </a>
+            <a asp-action="DownloadNetWorthHistoryCsv" class="btn btn-outline-primary">
+                <i class="bi bi-graph-up"></i> Net Worth History
+            </a>
+        </div>
     }
 </div>
 

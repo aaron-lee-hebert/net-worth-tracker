@@ -27,6 +27,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label asp-for="Locale" class="form-label"></label>
+                        <select asp-for="Locale" class="form-select" asp-items="@(ViewBag.SupportedLocales as IEnumerable<SelectListItem>)"></select>
+                        <small class="text-muted">Determines date, number, and currency formatting.</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label asp-for="Email" class="form-label"></label>
                         <input asp-for="Email" class="form-control" placeholder="Enter your email" />
                         <span asp-validation-for="Email" class="text-danger"></span>

@@ -241,4 +241,94 @@ public class ReportsController : Controller
     {
         return value.Replace("\"", "\"\"");
     }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadNetWorthHistoryCsv()
+    {
+        var userId = Guid.Parse(_userManager.GetUserId(User)!);
+        var accounts = (await _accountRepository.GetActiveAccountsByUserIdAsync(userId)).ToList();
+
+        if (!accounts.Any())
+        {
+            return RedirectToAction(nameof(Quarterly));
+        }
+
+        var earliestDate = new DateTime(2000, 1, 1);
+        var allHistory = (await _balanceHistoryRepository.GetByUserIdAndDateRangeAsync(
+            userId, earliestDate, DateTime.UtcNow)).ToList();
+
+        if (!allHistory.Any())
+        {
+            return RedirectToAction(nameof(Quarterly));
+        }
+
+        var csv = GenerateNetWorthHistoryCsv(accounts, allHistory);
+        var fileName = $"net-worth-history-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+
+        return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+    }
+
+    private string GenerateNetWorthHistoryCsv(List<Account> accounts, List<BalanceHistory> allHistory)
+    {
+        var sb = new StringBuilder();
+
+        // Build monthly snapshots
+        var historyByAccount = allHistory
+            .GroupBy(h => h.AccountId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(h => h.RecordedAt).ToList());
+
+        // Get date range
+        var firstDate = allHistory.Min(h => h.RecordedAt);
+        var months = new List<DateTime>();
+        var currentMonth = new DateTime(firstDate.Year, firstDate.Month, 1);
+
+        while (currentMonth <= DateTime.UtcNow)
+        {
+            months.Add(currentMonth);
+            currentMonth = currentMonth.AddMonths(1);
+        }
+
+        // Header
+        sb.AppendLine("Date,Total Assets,Total Liabilities,Net Worth,Change,% Change");
+
+        decimal? previousNetWorth = null;
+
+        foreach (var month in months)
+        {
+            var monthEnd = month.AddMonths(1).AddDays(-1);
+            decimal totalAssets = 0;
+            decimal totalLiabilities = 0;
+
+            foreach (var account in accounts)
+            {
+                if (historyByAccount.TryGetValue(account.Id, out var accountHistory))
+                {
+                    var balanceAtMonth = accountHistory
+                        .Where(h => h.RecordedAt.Date <= monthEnd)
+                        .OrderByDescending(h => h.RecordedAt)
+                        .FirstOrDefault();
+
+                    if (balanceAtMonth != null)
+                    {
+                        if (account.AccountType.IsLiability())
+                            totalLiabilities += balanceAtMonth.Balance;
+                        else
+                            totalAssets += balanceAtMonth.Balance;
+                    }
+                }
+            }
+
+            var netWorth = totalAssets - totalLiabilities;
+            var change = previousNetWorth.HasValue ? netWorth - previousNetWorth.Value : (decimal?)null;
+            var percentChange = previousNetWorth.HasValue && previousNetWorth.Value != 0
+                ? (change / Math.Abs(previousNetWorth.Value)) * 100
+                : (decimal?)null;
+
+            sb.AppendLine($"{month:yyyy-MM},{totalAssets:F2},{totalLiabilities:F2},{netWorth:F2},{change?.ToString("F2") ?? ""},{percentChange?.ToString("F2") ?? ""}");
+
+            previousNetWorth = netWorth;
+        }
+
+        return sb.ToString();
+    }
 }

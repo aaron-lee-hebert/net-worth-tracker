@@ -14,6 +14,9 @@ public class ApplicationUser : IdentityUser<Guid>
     public virtual string? AuthenticatorKey { get; set; }
     public virtual string? RecoveryCodes { get; set; }
 
+    // Locale preference (e.g., "en-US", "en-GB")
+    public virtual string Locale { get; set; } = "en-US";
+
     /// <summary>
     /// Gets the user's display name. Returns FirstName + LastName if available, otherwise falls back to UserName.
     /// </summary>

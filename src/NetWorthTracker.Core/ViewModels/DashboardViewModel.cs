@@ -10,6 +10,8 @@ public class DashboardViewModel
     public Dictionary<AccountCategory, decimal> TotalsByCategory { get; set; } = new();
     public IList<AccountSummaryViewModel> RecentAccounts { get; set; } = new List<AccountSummaryViewModel>();
     public IList<NetWorthHistoryViewModel> NetWorthHistory { get; set; } = new List<NetWorthHistoryViewModel>();
+    public bool IsFirstTimeUser { get; set; }
+    public bool ShowFirstAccountSuccess { get; set; }
 }
 
 public class AccountSummaryViewModel

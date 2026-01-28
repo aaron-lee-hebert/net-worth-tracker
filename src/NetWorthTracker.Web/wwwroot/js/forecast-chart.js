@@ -11,9 +11,9 @@ async function fetchForecastData(forecastMonths) {
 }
 
 function formatCurrency(value, decimals = 0) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(window.userLocale || 'en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: window.userCurrency || 'USD',
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals
     }).format(value);
@@ -138,7 +138,7 @@ function renderSummary(data) {
 
     document.getElementById('currentNetWorth').textContent = formatCurrency(summary.currentNetWorth);
     document.getElementById('projectedNetWorth').textContent = formatCurrency(summary.projectedNetWorth);
-    document.getElementById('projectionDate').textContent = new Date(summary.projectionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    document.getElementById('projectionDate').textContent = new Date(summary.projectionDate).toLocaleDateString(window.userLocale || 'en-US', { month: 'short', year: 'numeric' });
     document.getElementById('projectedChange').textContent = (summary.projectedChange >= 0 ? '+' : '') + formatCurrency(summary.projectedChange);
     document.getElementById('growthRate').textContent = formatPercent(summary.projectedChangePercent);
 
@@ -267,7 +267,7 @@ function getTrendIcon(direction, isLiability, isPayingDown = false) {
 function getPayoffDateBadge(account) {
     if (account.payoffDate) {
         const date = new Date(account.payoffDate);
-        return `<span class="badge bg-success"><i class="bi bi-calendar-check me-1"></i>${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>`;
+        return `<span class="badge bg-success"><i class="bi bi-calendar-check me-1"></i>${date.toLocaleDateString(window.userLocale || 'en-US', { month: 'short', year: 'numeric' })}</span>`;
     } else if (account.projectedBalance === 0) {
         return '<span class="badge bg-success">Paid Off!</span>';
     }
@@ -320,6 +320,107 @@ async function loadForecastData() {
     }
 }
 
+async function loadAssumptions() {
+    try {
+        const response = await fetch('/Forecasts/GetAssumptions');
+        if (!response.ok) throw new Error('Failed to load assumptions');
+        const data = await response.json();
+
+        document.getElementById('investmentRate').value = data.investmentGrowthRate;
+        document.getElementById('realEstateRate').value = data.realEstateGrowthRate;
+        document.getElementById('bankingRate').value = data.bankingGrowthRate;
+        document.getElementById('businessRate').value = data.businessGrowthRate;
+        document.getElementById('vehicleRate').value = data.vehicleDepreciationRate;
+
+        // Show badge if custom overrides are active
+        const badge = document.getElementById('customBadge');
+        if (data.hasCustomOverrides) {
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
+        }
+    } catch (error) {
+        console.error('Error loading assumptions:', error);
+    }
+}
+
+async function saveAssumptions() {
+    const btn = document.getElementById('saveAssumptionsBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+    try {
+        const assumptions = {
+            investmentGrowthRate: parseFloat(document.getElementById('investmentRate').value) || 7,
+            realEstateGrowthRate: parseFloat(document.getElementById('realEstateRate').value) || 2,
+            bankingGrowthRate: parseFloat(document.getElementById('bankingRate').value) || 0.5,
+            businessGrowthRate: parseFloat(document.getElementById('businessRate').value) || 3,
+            vehicleDepreciationRate: parseFloat(document.getElementById('vehicleRate').value) || 15
+        };
+
+        const response = await fetch('/Forecasts/SaveAssumptions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            },
+            body: JSON.stringify(assumptions)
+        });
+
+        if (!response.ok) throw new Error('Failed to save assumptions');
+
+        // Reload the forecast with new assumptions
+        await loadForecastData();
+        await loadAssumptions();
+
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Saved!';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 1500);
+    } catch (error) {
+        console.error('Error saving assumptions:', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('Failed to save assumptions. Please try again.');
+    }
+}
+
+async function resetAssumptions() {
+    const btn = document.getElementById('resetAssumptionsBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Resetting...';
+
+    try {
+        const response = await fetch('/Forecasts/ResetAssumptions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to reset assumptions');
+
+        // Reload assumptions and forecast
+        await loadAssumptions();
+        await loadForecastData();
+
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Reset!';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 1500);
+    } catch (error) {
+        console.error('Error resetting assumptions:', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('Failed to reset assumptions. Please try again.');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Get initial forecast months from page
     const initialMonths = parseInt(document.body.dataset.forecastMonths) || 60;
@@ -332,6 +433,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Set up assumption button handlers
+    const saveBtn = document.getElementById('saveAssumptionsBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveAssumptions);
+    }
+
+    const resetBtn = document.getElementById('resetAssumptionsBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetAssumptions);
+    }
+
     // Initial load
     loadForecastData();
+    loadAssumptions();
 });
