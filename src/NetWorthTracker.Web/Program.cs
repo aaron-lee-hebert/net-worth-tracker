@@ -8,180 +8,239 @@ using NetWorthTracker.Infrastructure.Data;
 using NetWorthTracker.Web.HealthChecks;
 using NetWorthTracker.Web.Middleware;
 using NetWorthTracker.Web.Services;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+// Configure Serilog early for bootstrap logging
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// Add Infrastructure services (NHibernate, Repositories)
-builder.Services.AddInfrastructure(builder.Configuration);
-
-// Add Identity services
-builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+try
 {
-    // Password requirements
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 8;
+    Log.Information("Starting Net Worth Tracker");
 
-    // User settings
-    options.User.RequireUniqueEmail = true;
+    var builder = WebApplication.CreateBuilder(args);
 
-    // Lockout settings for brute force protection
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.AllowedForNewUsers = true;
-
-    // Sign-in settings
-    options.SignIn.RequireConfirmedEmail = false; // Handled manually based on email config
-})
-.AddNHibernateIdentityStores()
-.AddDefaultTokenProviders();
-
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-});
-
-// Add MVC services
-builder.Services.AddControllersWithViews();
-
-// Add rate limiting for auth endpoints
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    // Rate limit for authentication endpoints (login, register, password reset)
-    options.AddPolicy("auth", context =>
-        RateLimitPartition.GetSlidingWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new SlidingWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-                SegmentsPerWindow = 2,
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            }));
-
-    // Stricter rate limit for password reset to prevent enumeration
-    options.AddPolicy("password-reset", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 3,
-                Window = TimeSpan.FromMinutes(15),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            }));
-});
-
-// Add health checks
-builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("database");
-
-// Add background service for alerts
-builder.Services.AddHostedService<AlertBackgroundService>();
-
-// Configure HSTS (HTTP Strict Transport Security)
-builder.Services.AddHsts(options =>
-{
-    options.Preload = true;
-    options.IncludeSubDomains = true;
-    options.MaxAge = TimeSpan.FromDays(365);
-});
-
-var app = builder.Build();
-
-// Handle CLI commands before starting the web server
-if (await HandleCliCommands(args, app.Services))
-{
-    return; // Exit after handling CLI command
-}
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-
-    // HTTPS redirection and HSTS for production
-    app.UseHttpsRedirection();
-    app.UseHsts();
-}
-
-// Security headers middleware
-app.Use(async (context, next) =>
-{
-    // Prevent MIME type sniffing
-    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-
-    // Prevent clickjacking
-    context.Response.Headers["X-Frame-Options"] = "DENY";
-
-    // XSS protection (legacy, but still useful for older browsers)
-    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
-
-    // Control referrer information
-    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-
-    // Permissions policy (disable features we don't use)
-    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
-
-    await next();
-});
-
-app.UseRouting();
-
-app.UseRateLimiter();
-
-app.UseAuthentication();
-
-// Set user locale for formatting (dates, numbers, currency)
-app.UseUserLocale();
-
-app.UseAuthorization();
-
-// Check subscription status for authenticated users
-app.UseSubscriptionMiddleware();
-
-app.MapStaticAssets();
-
-app.MapHealthChecks("/health", new HealthCheckOptions
-{
-    ResponseWriter = async (context, report) =>
+    // Configure Serilog from appsettings.json with optional Seq sink for SaaS
+    builder.Host.UseSerilog((context, services, configuration) =>
     {
-        context.Response.ContentType = "application/json";
-        var result = System.Text.Json.JsonSerializer.Serialize(new
+        configuration.ReadFrom.Configuration(context.Configuration);
+
+        // Add Seq sink if configured (for SaaS/hosted version)
+        var seqServerUrl = context.Configuration["Seq:ServerUrl"];
+        if (!string.IsNullOrEmpty(seqServerUrl))
         {
-            status = report.Status.ToString(),
-            checks = report.Entries.Select(e => new
-            {
-                name = e.Key,
-                status = e.Value.Status.ToString(),
-                description = e.Value.Description
-            })
-        });
-        await context.Response.WriteAsync(result);
+            var seqApiKey = context.Configuration["Seq:ApiKey"];
+            configuration.WriteTo.Seq(seqServerUrl, apiKey: string.IsNullOrEmpty(seqApiKey) ? null : seqApiKey);
+            Log.Information("Seq logging enabled: {SeqServerUrl}", seqServerUrl);
+        }
+    });
+
+    // Add Infrastructure services (NHibernate, Repositories)
+    builder.Services.AddInfrastructure(builder.Configuration);
+
+    // Add Identity services
+    builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+    {
+        // Password requirements
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 8;
+
+        // User settings
+        options.User.RequireUniqueEmail = true;
+
+        // Lockout settings for brute force protection
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.AllowedForNewUsers = true;
+
+        // Sign-in settings
+        options.SignIn.RequireConfirmedEmail = false; // Handled manually based on email config
+    })
+    .AddNHibernateIdentityStores()
+    .AddDefaultTokenProviders();
+
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+    });
+
+    // Add MVC services
+    builder.Services.AddControllersWithViews();
+
+    // Add HttpContextAccessor for accessing current user in services
+    builder.Services.AddHttpContextAccessor();
+
+    // Add user timezone service for converting timestamps to user's local time
+    builder.Services.AddScoped<NetWorthTracker.Core.Services.IUserTimeZoneService, UserTimeZoneService>();
+
+    // Add rate limiting for auth endpoints
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        // Rate limit for authentication endpoints (login, register, password reset)
+        options.AddPolicy("auth", context =>
+            RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 2,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+
+        // Stricter rate limit for password reset to prevent enumeration
+        options.AddPolicy("password-reset", context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 3,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0
+                }));
+    });
+
+    // Add health checks
+    builder.Services.AddHealthChecks()
+        .AddCheck<DatabaseHealthCheck>("database");
+
+    // Add background service for alerts
+    builder.Services.AddHostedService<AlertBackgroundService>();
+
+    // Configure HSTS (HTTP Strict Transport Security)
+    builder.Services.AddHsts(options =>
+    {
+        options.Preload = true;
+        options.IncludeSubDomains = true;
+        options.MaxAge = TimeSpan.FromDays(365);
+    });
+
+    var app = builder.Build();
+
+    // Handle CLI commands before starting the web server
+    if (await HandleCliCommands(args, app.Services))
+    {
+        return; // Exit after handling CLI command
     }
-});
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    // Configure the HTTP request pipeline.
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Home/Error");
 
-// Seed demo data if enabled
-if (app.Configuration.GetValue<bool>("SeedDemoData"))
-{
-    using var scope = app.Services.CreateScope();
-    var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
-    await seeder.SeedAsync();
+        // HTTPS redirection and HSTS for production
+        app.UseHttpsRedirection();
+        app.UseHsts();
+    }
+
+    // Security headers middleware
+    app.Use(async (context, next) =>
+    {
+        // Prevent MIME type sniffing
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+        // Prevent clickjacking
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+
+        // XSS protection (legacy, but still useful for older browsers)
+        context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+
+        // Control referrer information
+        context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+
+        // Permissions policy (disable features we don't use)
+        context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+
+        await next();
+    });
+
+    // Serilog request logging (adds structured HTTP request logs)
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? "unknown");
+            diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+            if (httpContext.User.Identity?.IsAuthenticated == true)
+            {
+                var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userId != null)
+                {
+                    diagnosticContext.Set("UserId", userId);
+                }
+            }
+        };
+    });
+
+    app.UseRouting();
+
+    app.UseRateLimiter();
+
+    app.UseAuthentication();
+
+    // Set user locale for formatting (dates, numbers, currency)
+    app.UseUserLocale();
+
+    app.UseAuthorization();
+
+    // Check subscription status for authenticated users
+    app.UseSubscriptionMiddleware();
+
+    app.MapStaticAssets();
+
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+            var result = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                status = report.Status.ToString(),
+                checks = report.Entries.Select(e => new
+                {
+                    name = e.Key,
+                    status = e.Value.Status.ToString(),
+                    description = e.Value.Description
+                })
+            });
+            await context.Response.WriteAsync(result);
+        }
+    });
+
+    app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller=Home}/{action=Index}/{id?}")
+        .WithStaticAssets();
+
+    // Seed demo data if enabled
+    if (app.Configuration.GetValue<bool>("SeedDemoData"))
+    {
+        using var scope = app.Services.CreateScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+        await seeder.SeedAsync();
+    }
+
+    app.Run();
 }
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.Information("Application shutting down");
+    Log.CloseAndFlush();
+}
 
 /// <summary>
 /// Handles CLI commands for administrative tasks.

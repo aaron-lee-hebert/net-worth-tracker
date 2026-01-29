@@ -29,8 +29,8 @@ public class ApplicationUserMap : ClassMap<ApplicationUser>
 
         Map(x => x.FirstName).Length(100);
         Map(x => x.LastName).Length(100);
-        Map(x => x.CreatedAt);
-        Map(x => x.UpdatedAt);
+        Map(x => x.CreatedAt).CustomType<PostgresTimestampType>();
+        Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
 
         // MFA properties
         Map(x => x.AuthenticatorKey).Length(500);
@@ -38,6 +38,9 @@ public class ApplicationUserMap : ClassMap<ApplicationUser>
 
         // Locale preference
         Map(x => x.Locale).Length(10).Not.Nullable().Default("'en-US'");
+
+        // Timezone preference (IANA timezone identifier)
+        Map(x => x.TimeZone).Length(50).Not.Nullable().Default("'America/New_York'");
 
         HasMany(x => x.Accounts)
             // Key column set by convention (UserId for SQLite, user_id for PostgreSQL)

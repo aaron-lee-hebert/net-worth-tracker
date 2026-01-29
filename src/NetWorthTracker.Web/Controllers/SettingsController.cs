@@ -52,6 +52,7 @@ public class SettingsController : Controller
             Text = l.Value,
             Selected = l.Key == user.Locale
         });
+        ViewBag.SupportedTimeZones = GetTimeZoneSelectList(user.TimeZone);
 
         return View(user);
     }
@@ -159,7 +160,7 @@ public class SettingsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateProfile(string firstName, string lastName, string locale)
+    public async Task<IActionResult> UpdateProfile(string firstName, string lastName, string locale, string timeZone)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
@@ -167,6 +168,7 @@ public class SettingsController : Controller
         user.FirstName = firstName;
         user.LastName = lastName;
         user.Locale = SupportedLocales.IsSupported(locale) ? locale : "en-US";
+        user.TimeZone = SupportedTimeZones.IsSupported(timeZone) ? timeZone : "America/New_York";
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userManager.UpdateAsync(user);
@@ -362,5 +364,32 @@ public class SettingsController : Controller
             Uri.EscapeDataString("Net Worth Tracker"),
             Uri.EscapeDataString(email),
             unformattedKey);
+    }
+
+    private static IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> GetTimeZoneSelectList(string selectedTimeZone)
+    {
+        var groups = SupportedTimeZones.TimeZoneGroups.Keys
+            .ToDictionary(k => k, k => new Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup { Name = k });
+
+        var items = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+
+        foreach (var group in SupportedTimeZones.TimeZoneGroups)
+        {
+            foreach (var tzId in group.Value)
+            {
+                if (SupportedTimeZones.TimeZones.TryGetValue(tzId, out var displayName))
+                {
+                    items.Add(new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                    {
+                        Value = tzId,
+                        Text = displayName,
+                        Selected = tzId == selectedTimeZone,
+                        Group = groups[group.Key]
+                    });
+                }
+            }
+        }
+
+        return items;
     }
 }

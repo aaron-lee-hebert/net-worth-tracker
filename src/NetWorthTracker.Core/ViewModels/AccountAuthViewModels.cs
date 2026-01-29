@@ -46,6 +46,9 @@ public class RegisterViewModel
 
     [Display(Name = "Region")]
     public string Locale { get; set; } = "en-US";
+
+    [Display(Name = "Time Zone")]
+    public string TimeZone { get; set; } = "America/New_York";
 }
 
 public class LoginWith2faViewModel

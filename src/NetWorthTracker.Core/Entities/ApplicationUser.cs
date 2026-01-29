@@ -17,6 +17,9 @@ public class ApplicationUser : IdentityUser<Guid>
     // Locale preference (e.g., "en-US", "en-GB")
     public virtual string Locale { get; set; } = "en-US";
 
+    // IANA timezone identifier (e.g., "America/New_York", "Europe/London")
+    public virtual string TimeZone { get; set; } = "America/New_York";
+
     /// <summary>
     /// Gets the user's display name. Returns FirstName + LastName if available, otherwise falls back to UserName.
     /// </summary>

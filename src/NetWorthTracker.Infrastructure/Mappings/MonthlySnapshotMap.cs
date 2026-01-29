@@ -1,5 +1,6 @@
 using FluentNHibernate.Mapping;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Infrastructure.Types;
 
 namespace NetWorthTracker.Infrastructure.Mappings;
 
@@ -10,7 +11,7 @@ public class MonthlySnapshotMap : ClassMap<MonthlySnapshot>
         Id(x => x.Id).GeneratedBy.GuidComb();
 
         Map(x => x.UserId).Not.Nullable();
-        Map(x => x.Month).Not.Nullable();
+        Map(x => x.Month).CustomType<PostgresTimestampType>().Not.Nullable();
         Map(x => x.NetWorth).Precision(18).Scale(2);
         Map(x => x.TotalAssets).Precision(18).Scale(2);
         Map(x => x.TotalLiabilities).Precision(18).Scale(2);
@@ -21,9 +22,9 @@ public class MonthlySnapshotMap : ClassMap<MonthlySnapshot>
         Map(x => x.BiggestContributorPositive);
         Map(x => x.Interpretation).Length(500);
         Map(x => x.EmailSent).Not.Nullable();
-        Map(x => x.EmailSentAt);
-        Map(x => x.CreatedAt).Not.Nullable();
-        Map(x => x.UpdatedAt);
+        Map(x => x.EmailSentAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
+        Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
 
         References(x => x.User)
             .Not.Insert()

@@ -57,6 +57,13 @@
                             Determines date, number, and currency formatting.
                         </small>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time Zone</label>
+                        <select name="timeZone" class="form-select" asp-items="@(ViewBag.SupportedTimeZones as IEnumerable<SelectListItem>)"></select>
+                        <small class="text-muted">
+                            Used for displaying timestamps in your local time.
+                        </small>
+                    </div>
                     <small class="text-muted d-block mb-3">
                         Your name will be displayed in the navigation bar.
                     </small>

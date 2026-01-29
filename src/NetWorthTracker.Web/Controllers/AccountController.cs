@@ -183,6 +183,7 @@ public class AccountController : Controller
             Text = l.Value,
             Selected = l.Key == "en-US"
         });
+        ViewBag.SupportedTimeZones = GetTimeZoneSelectList("America/New_York");
         return View();
     }
 
@@ -199,6 +200,7 @@ public class AccountController : Controller
                 Text = l.Value,
                 Selected = l.Key == model.Locale
             });
+            ViewBag.SupportedTimeZones = GetTimeZoneSelectList(model.TimeZone);
             return View(model);
         }
 
@@ -208,7 +210,8 @@ public class AccountController : Controller
             Email = model.Email,
             FirstName = model.FirstName,
             LastName = model.LastName,
-            Locale = SupportedLocales.IsSupported(model.Locale) ? model.Locale : "en-US"
+            Locale = SupportedLocales.IsSupported(model.Locale) ? model.Locale : "en-US",
+            TimeZone = SupportedTimeZones.IsSupported(model.TimeZone) ? model.TimeZone : "America/New_York"
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
@@ -249,6 +252,7 @@ public class AccountController : Controller
             Text = l.Value,
             Selected = l.Key == model.Locale
         });
+        ViewBag.SupportedTimeZones = GetTimeZoneSelectList(model.TimeZone);
         return View(model);
     }
 
@@ -405,5 +409,39 @@ public class AccountController : Controller
     public IActionResult AccessDenied()
     {
         return View();
+    }
+
+    private static IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup> GetTimeZoneGroups()
+    {
+        return SupportedTimeZones.TimeZoneGroups.Keys
+            .Select(g => new Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup { Name = g })
+            .ToList();
+    }
+
+    private static IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> GetTimeZoneSelectList(string selectedTimeZone)
+    {
+        var groups = SupportedTimeZones.TimeZoneGroups.Keys
+            .ToDictionary(k => k, k => new Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup { Name = k });
+
+        var items = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+
+        foreach (var group in SupportedTimeZones.TimeZoneGroups)
+        {
+            foreach (var tzId in group.Value)
+            {
+                if (SupportedTimeZones.TimeZones.TryGetValue(tzId, out var displayName))
+                {
+                    items.Add(new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                    {
+                        Value = tzId,
+                        Text = displayName,
+                        Selected = tzId == selectedTimeZone,
+                        Group = groups[group.Key]
+                    });
+                }
+            }
+        }
+
+        return items;
     }
 }

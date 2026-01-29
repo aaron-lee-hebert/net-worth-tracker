@@ -13,7 +13,7 @@ public class StripeSettings
     public string SecretKey { get; set; } = string.Empty;
     public string PublishableKey { get; set; } = string.Empty;
     public string WebhookSecret { get; set; } = string.Empty;
-    public string PriceId { get; set; } = string.Empty; // The Stripe Price ID for the $20/year subscription
+    public string PriceId { get; set; } = string.Empty; // The Stripe Price ID for the $30/year subscription
     public int TrialDays { get; set; } = 14;
 }
 

@@ -52,4 +52,17 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
             .OrderBy(b => b.RecordedAt)
             .ToListAsync();
     }
+
+    public async Task<BalanceHistory?> GetByAccountIdAndDateAsync(Guid accountId, DateTime date)
+    {
+        // Match records on the same calendar date (within UTC day boundaries)
+        var startOfDay = date.Date;
+        var endOfDay = startOfDay.AddDays(1);
+
+        return await Session.Query<BalanceHistory>()
+            .Where(b => b.AccountId == accountId &&
+                        b.RecordedAt >= startOfDay &&
+                        b.RecordedAt < endOfDay)
+            .FirstOrDefaultAsync();
+    }
 }

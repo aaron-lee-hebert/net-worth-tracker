@@ -33,6 +33,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label asp-for="TimeZone" class="form-label"></label>
+                        <select asp-for="TimeZone" class="form-select" asp-items="@(ViewBag.SupportedTimeZones as IEnumerable<SelectListItem>)"></select>
+                        <small class="text-muted">Used for displaying timestamps in your local time.</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label asp-for="Email" class="form-label"></label>
                         <input asp-for="Email" class="form-control" placeholder="Enter your email" />
                         <span asp-validation-for="Email" class="text-danger"></span>
