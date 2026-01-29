@@ -5,6 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Seq" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
     <ProjectReference Include="..\NetWorthTracker.Infrastructure\NetWorthTracker.Infrastructure.csproj" />
   </ItemGroup>

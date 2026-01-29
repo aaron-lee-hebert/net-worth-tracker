@@ -1,5 +1,6 @@
 using FluentNHibernate.Mapping;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Infrastructure.Types;
 
 namespace NetWorthTracker.Infrastructure.Mappings;
 
@@ -15,7 +16,7 @@ public class ForecastAssumptionsMap : ClassMap<ForecastAssumptions>
         Map(x => x.BankingGrowthRate).Precision(5).Scale(4);
         Map(x => x.BusinessGrowthRate).Precision(5).Scale(4);
         Map(x => x.VehicleDepreciationRate).Precision(5).Scale(4);
-        Map(x => x.CreatedAt).Not.Nullable();
-        Map(x => x.ModifiedAt).Not.Nullable();
+        Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
+        Map(x => x.ModifiedAt).CustomType<PostgresTimestampType>().Not.Nullable();
     }
 }

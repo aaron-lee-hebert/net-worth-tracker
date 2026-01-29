@@ -17,6 +17,7 @@ namespace NetWorthTracker.Tests.Controllers;
 public class DashboardControllerTests
 {
     private Mock<IAccountRepository> _mockAccountRepository = null!;
+    private Mock<IBalanceHistoryRepository> _mockBalanceHistoryRepository = null!;
     private Mock<UserManager<ApplicationUser>> _mockUserManager = null!;
     private DashboardController _controller = null!;
     private Guid _testUserId;
@@ -26,6 +27,7 @@ public class DashboardControllerTests
     {
         _testUserId = Guid.NewGuid();
         _mockAccountRepository = new Mock<IAccountRepository>();
+        _mockBalanceHistoryRepository = new Mock<IBalanceHistoryRepository>();
 
         var mockUserStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
@@ -36,6 +38,7 @@ public class DashboardControllerTests
 
         _controller = new DashboardController(
             _mockAccountRepository.Object,
+            _mockBalanceHistoryRepository.Object,
             _mockUserManager.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]

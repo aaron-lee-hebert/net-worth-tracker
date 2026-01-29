@@ -295,8 +295,8 @@ public class DemoDataSeeder
                 Id = Guid.NewGuid(),
                 AccountId = account.Id,
                 Balance = balance,
-                RecordedAt = recordDate,
-                CreatedAt = recordDate
+                RecordedAt = recordDate,   // UTC timestamp
+                CreatedAt = DateTime.UtcNow
             });
         }
 
@@ -308,13 +308,15 @@ public class DemoDataSeeder
         var targetDate = fromDate.AddMonths(quartersOffset * 3);
         var quarter = (targetDate.Month - 1) / 3;
         var quarterEndMonth = (quarter + 1) * 3;
-        var quarterEnd = new DateTime(targetDate.Year, quarterEndMonth, 1).AddMonths(1).AddDays(-1);
+        var quarterEnd = new DateTime(targetDate.Year, quarterEndMonth, 1, 0, 0, 0, DateTimeKind.Utc)
+            .AddMonths(1).AddDays(-1);
 
         // If we're in the current quarter, use current date
         if (quartersOffset == 0)
             return fromDate;
 
-        return new DateTime(quarterEnd.Year, quarterEnd.Month, quarterEnd.Day, 12, 0, 0, DateTimeKind.Utc);
+        // Return end of quarter at end of day UTC
+        return new DateTime(quarterEnd.Year, quarterEnd.Month, quarterEnd.Day, 23, 59, 59, DateTimeKind.Utc);
     }
 
     private static (decimal startBalance, string growthPattern) GetGrowthParameters(Account account)

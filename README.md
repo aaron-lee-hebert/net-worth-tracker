@@ -9,6 +9,9 @@
   <a href="https://codecov.io/gh/aaron-lee-hebert/net-worth-tracker">
     <img src="https://codecov.io/gh/aaron-lee-hebert/net-worth-tracker/graph/badge.svg" alt="Code Coverage">
   </a>
+  <a href="https://github.com/aaron-lee-hebert/net-worth-tracker/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  </a>
 </p>
 
 A distinguished, self-hosted application for the discerning individual who values both privacy and a clear view of their financial standing. Track your assets, liabilities, and accounts without surrendering your data to third parties.

@@ -1,4 +1,4 @@
-✅ Net Worth Tracker – “Ready to Charge $20/Year” Checklist
+✅ Net Worth Tracker – "Ready to Charge $30/Year" Checklist
 ## PHASE 0 — Foundations (No User-Facing Value Yet)
 
 > If this isn't done, nothing else matters.
@@ -41,7 +41,7 @@
 ## PHASE 2 — Subscription Plumbing (Hidden, Not Marketed Yet)
 
 7. Stripe Integration (Isolated)
-- [x] Single product: $20/year (configurable via Stripe__PriceId)
+- [x] Single product: $30/year (configurable via Stripe__PriceId)
 - [x] Stripe Checkout (not custom forms)
 - [x] Webhook handling:
   - [x] checkout.session.completed
@@ -150,6 +150,43 @@
 23. Disaster Drill
 - Restore DB from backup
 - Confirm app boots and data exists
+
+## PHASE 8 — Architecture & Code Quality (Clean Architecture + TDD + SOLID)
+
+> Technical debt reduction for long-term maintainability.
+
+24. Application Services Layer
+- [ ] Create `NetWorthTracker.Application` project
+- [ ] Extract `IDashboardService` from DashboardController
+- [ ] Extract `IForecastService` from ForecastsController (~420 lines of business logic)
+- [ ] Extract `IReportService` from ReportsController (~330 lines of business logic)
+- [ ] Extract `IExportService` for CSV generation logic
+- [ ] Extract `IAccountManagementService` from AccountsController (~500 lines)
+- [ ] Reduce all controllers to <200 lines (delegation only)
+
+25. Repository Standardization
+- [ ] Make `ISubscriptionRepository` extend `IRepository<Subscription>`
+- [ ] Make `IAlertConfigurationRepository` extend `IRepository<AlertConfiguration>`
+- [ ] Make `IMonthlySnapshotRepository` extend `IRepository<MonthlySnapshot>`
+- [ ] Make `IForecastAssumptionsRepository` extend `IRepository<ForecastAssumptions>`
+
+26. Test Coverage Expansion (Target: 60%+)
+- [ ] Add tests for `AlertService` (complex background logic)
+- [ ] Add tests for `StripeService` (payment processing - critical)
+- [ ] Add tests for `SendGridEmailService`
+- [ ] Add tests for new Application Services (as created)
+- [ ] Add integration tests for repositories
+- [ ] Add controller tests for all endpoints
+- [ ] Set up code coverage reporting in CI
+
+27. Code Organization
+- [ ] Restructure tests folder to mirror src/:
+  - `NetWorthTracker.Core.Tests`
+  - `NetWorthTracker.Infrastructure.Tests`
+  - `NetWorthTracker.Application.Tests`
+  - `NetWorthTracker.Web.Tests`
+- [ ] Document architecture decisions (ADR format)
+- [ ] Add coding standards document
 
 ## What Is Explicitly Out of Scope
 

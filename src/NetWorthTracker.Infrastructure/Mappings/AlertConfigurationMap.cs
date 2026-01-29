@@ -1,5 +1,6 @@
 using FluentNHibernate.Mapping;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Infrastructure.Types;
 
 namespace NetWorthTracker.Infrastructure.Mappings;
 
@@ -14,12 +15,12 @@ public class AlertConfigurationMap : ClassMap<AlertConfiguration>
         Map(x => x.NetWorthChangeThreshold).Precision(5).Scale(2);
         Map(x => x.CashRunwayMonths);
         Map(x => x.MonthlySnapshotEnabled).Not.Nullable();
-        Map(x => x.LastNetWorthAlertSentAt);
-        Map(x => x.LastCashRunwayAlertSentAt);
-        Map(x => x.LastMonthlySnapshotSentAt);
+        Map(x => x.LastNetWorthAlertSentAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.LastCashRunwayAlertSentAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.LastMonthlySnapshotSentAt).CustomType<PostgresNullableTimestampType>();
         Map(x => x.LastAlertedNetWorth).Precision(18).Scale(2);
-        Map(x => x.CreatedAt).Not.Nullable();
-        Map(x => x.UpdatedAt);
+        Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
+        Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
 
         References(x => x.User)
             .Not.Insert()

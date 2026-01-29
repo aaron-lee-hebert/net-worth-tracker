@@ -1,5 +1,6 @@
 using FluentNHibernate.Mapping;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Infrastructure.Types;
 
 namespace NetWorthTracker.Infrastructure.Mappings;
 
@@ -18,8 +19,8 @@ public class AccountMap : ClassMap<Account>
         Map(x => x.Institution).Length(200);
         Map(x => x.AccountNumber).Length(100);
         Map(x => x.IsActive).Not.Nullable();
-        Map(x => x.CreatedAt).Not.Nullable();
-        Map(x => x.UpdatedAt);
+        Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
+        Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
 
         Map(x => x.UserId).Not.Nullable();
         References(x => x.User)
