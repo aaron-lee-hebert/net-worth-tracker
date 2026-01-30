@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Application;
 using NetWorthTracker.Infrastructure;
 using NetWorthTracker.Infrastructure.Data;
 using NetWorthTracker.Web.HealthChecks;
@@ -38,6 +39,9 @@ try
 
     // Add Infrastructure services (NHibernate, Repositories)
     builder.Services.AddInfrastructure(builder.Configuration);
+
+    // Add Application services
+    builder.Services.AddApplication();
 
     // Add Identity services
     builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -259,6 +263,14 @@ static async Task<bool> HandleCliCommands(string[] args, IServiceProvider servic
             await ResetPasswordCommand(args, services);
             return true;
 
+        case "--make-admin":
+            await MakeAdminCommand(args, services);
+            return true;
+
+        case "--revoke-admin":
+            await RevokeAdminCommand(args, services);
+            return true;
+
         case "--list-users":
             await ListUsersCommand(services);
             return true;
@@ -326,6 +338,82 @@ static async Task ResetPasswordCommand(string[] args, IServiceProvider services)
     Console.WriteLine($"Password successfully reset for user: {email}");
 }
 
+static async Task MakeAdminCommand(string[] args, IServiceProvider services)
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("Usage: --make-admin <email>");
+        Console.WriteLine("Example: --make-admin admin@example.com");
+        Environment.Exit(1);
+        return;
+    }
+
+    var email = args[1];
+
+    using var scope = services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var session = scope.ServiceProvider.GetRequiredService<NHibernate.ISession>();
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user == null)
+    {
+        Console.WriteLine($"Error: User with email '{email}' not found.");
+        Environment.Exit(1);
+        return;
+    }
+
+    if (user.IsAdmin)
+    {
+        Console.WriteLine($"User '{email}' is already an admin.");
+        return;
+    }
+
+    user.IsAdmin = true;
+    using var transaction = session.BeginTransaction();
+    await session.UpdateAsync(user);
+    await transaction.CommitAsync();
+
+    Console.WriteLine($"Successfully granted admin access to: {email}");
+}
+
+static async Task RevokeAdminCommand(string[] args, IServiceProvider services)
+{
+    if (args.Length < 2)
+    {
+        Console.WriteLine("Usage: --revoke-admin <email>");
+        Console.WriteLine("Example: --revoke-admin user@example.com");
+        Environment.Exit(1);
+        return;
+    }
+
+    var email = args[1];
+
+    using var scope = services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var session = scope.ServiceProvider.GetRequiredService<NHibernate.ISession>();
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user == null)
+    {
+        Console.WriteLine($"Error: User with email '{email}' not found.");
+        Environment.Exit(1);
+        return;
+    }
+
+    if (!user.IsAdmin)
+    {
+        Console.WriteLine($"User '{email}' is not an admin.");
+        return;
+    }
+
+    user.IsAdmin = false;
+    using var transaction = session.BeginTransaction();
+    await session.UpdateAsync(user);
+    await transaction.CommitAsync();
+
+    Console.WriteLine($"Successfully revoked admin access from: {email}");
+}
+
 static async Task ListUsersCommand(IServiceProvider services)
 {
     using var scope = services.CreateScope();
@@ -341,18 +429,20 @@ static async Task ListUsersCommand(IServiceProvider services)
         return;
     }
 
-    Console.WriteLine($"{"Email",-40} {"Name",-30} {"Created",-20}");
-    Console.WriteLine(new string('-', 90));
+    Console.WriteLine($"{"Email",-40} {"Name",-25} {"Admin",-6} {"Created",-20}");
+    Console.WriteLine(new string('-', 95));
 
     foreach (var user in users)
     {
         var name = user.DisplayName;
+        var admin = user.IsAdmin ? "Yes" : "No";
         var created = user.CreatedAt.ToString("yyyy-MM-dd HH:mm");
-        Console.WriteLine($"{user.Email,-40} {name,-30} {created,-20}");
+        Console.WriteLine($"{user.Email,-40} {name,-25} {admin,-6} {created,-20}");
     }
 
     Console.WriteLine();
     Console.WriteLine($"Total users: {users.Count}");
+    Console.WriteLine($"Admins: {users.Count(u => u.IsAdmin)}");
 }
 
 static void ShowHelp()
@@ -363,13 +453,18 @@ static void ShowHelp()
     Console.WriteLine();
     Console.WriteLine("Commands:");
     Console.WriteLine("  --reset-password <email> <new-password>  Reset a user's password");
+    Console.WriteLine("  --make-admin <email>                     Grant admin access to a user");
+    Console.WriteLine("  --revoke-admin <email>                   Revoke admin access from a user");
     Console.WriteLine("  --list-users                             List all registered users");
     Console.WriteLine("  --help, -h                               Show this help message");
     Console.WriteLine();
     Console.WriteLine("Examples:");
     Console.WriteLine("  dotnet NetWorthTracker.Web.dll --reset-password user@example.com NewPass123");
+    Console.WriteLine("  dotnet NetWorthTracker.Web.dll --make-admin admin@example.com");
+    Console.WriteLine("  dotnet NetWorthTracker.Web.dll --revoke-admin user@example.com");
     Console.WriteLine("  dotnet NetWorthTracker.Web.dll --list-users");
     Console.WriteLine();
     Console.WriteLine("Docker usage:");
+    Console.WriteLine("  docker exec -it <container> dotnet NetWorthTracker.Web.dll --make-admin admin@example.com");
     Console.WriteLine("  docker exec -it <container> dotnet NetWorthTracker.Web.dll --reset-password user@example.com NewPass123");
 }

@@ -179,7 +179,7 @@ public class SubscriptionMiddleware
             TrialEndsAt = now.AddDays(trialDays)
         };
 
-        await repository.CreateAsync(subscription);
+        await repository.AddAsync(subscription);
         _logger.LogInformation("Created trial subscription for user {UserId}, expires {TrialEnd}", userId, subscription.TrialEndsAt);
 
         return subscription;

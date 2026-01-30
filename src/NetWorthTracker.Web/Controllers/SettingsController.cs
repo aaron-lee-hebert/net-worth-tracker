@@ -18,6 +18,7 @@ public class SettingsController : Controller
     private readonly IBalanceHistoryRepository _balanceHistoryRepository;
     private readonly IAlertService _alertService;
     private readonly IEmailService _emailService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<SettingsController> _logger;
 
     public SettingsController(
@@ -27,6 +28,7 @@ public class SettingsController : Controller
         IBalanceHistoryRepository balanceHistoryRepository,
         IAlertService alertService,
         IEmailService emailService,
+        IAuditService auditService,
         ILogger<SettingsController> logger)
     {
         _userManager = userManager;
@@ -35,6 +37,7 @@ public class SettingsController : Controller
         _balanceHistoryRepository = balanceHistoryRepository;
         _alertService = alertService;
         _emailService = emailService;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -77,6 +80,17 @@ public class SettingsController : Controller
 
         await _alertService.UpdateConfigurationAsync(config);
 
+        // Audit log - alert settings updated
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.AlertSettingsUpdated,
+            EntityType = AuditEntityType.AlertConfiguration,
+            EntityId = config.Id,
+            NewValue = new { alertsEnabled, netWorthChangeThreshold, cashRunwayMonths, monthlySnapshotEnabled },
+            Description = $"Alert settings updated"
+        });
+
         _logger.LogInformation("Updated alert settings for user {UserId}", user.Id);
         TempData["SuccessMessage"] = "Notification settings updated successfully.";
 
@@ -105,6 +119,16 @@ public class SettingsController : Controller
                 }
                 await _accountRepository.DeleteAsync(account);
             }
+
+            // Audit log - all data deleted
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.AllDataDeleted,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = $"All financial data deleted for user {user.Email}"
+            });
 
             _logger.LogInformation("Deleted all data for user {UserId}", user.Id);
             TempData["SuccessMessage"] = "All your financial data has been deleted.";
@@ -139,13 +163,25 @@ public class SettingsController : Controller
                 await _accountRepository.DeleteAsync(account);
             }
 
+            // Audit log - account deleted (capture before sign out)
+            var userEmail = user.Email;
+            var userId = user.Id;
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = userId,
+                Action = AuditAction.UserDeleted,
+                EntityType = AuditEntityType.User,
+                EntityId = userId,
+                Description = $"User account deleted: {userEmail}"
+            });
+
             // Sign out the user
             await _signInManager.SignOutAsync();
 
             // Delete the user account
             await _userManager.DeleteAsync(user);
 
-            _logger.LogInformation("Deleted account for user {UserId}", user.Id);
+            _logger.LogInformation("Deleted account for user {UserId}", userId);
 
             TempData["SuccessMessage"] = "Your account and all data have been permanently deleted.";
             return RedirectToAction("Index", "Home");
@@ -165,6 +201,9 @@ public class SettingsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
+        // Capture old values for audit
+        var oldValues = new { user.FirstName, user.LastName, user.Locale, user.TimeZone };
+
         user.FirstName = firstName;
         user.LastName = lastName;
         user.Locale = SupportedLocales.IsSupported(locale) ? locale : "en-US";
@@ -172,6 +211,18 @@ public class SettingsController : Controller
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userManager.UpdateAsync(user);
+
+        // Audit log - profile updated
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.ProfileUpdated,
+            EntityType = AuditEntityType.User,
+            EntityId = user.Id,
+            OldValue = oldValues,
+            NewValue = new { firstName, lastName, locale, timeZone },
+            Description = "Profile updated"
+        });
 
         TempData["SuccessMessage"] = "Profile updated successfully.";
         return RedirectToAction(nameof(Index));
@@ -206,11 +257,34 @@ public class SettingsController : Controller
         if (result.Succeeded)
         {
             await _signInManager.RefreshSignInAsync(user);
+
+            // Audit log - password changed successfully
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.PasswordChanged,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = "Password changed successfully"
+            });
+
             TempData["SuccessMessage"] = "Password changed successfully.";
         }
         else
         {
+            // Audit log - password change failed
             var errors = string.Join(" ", result.Errors.Select(e => e.Description));
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.PasswordChanged,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = "Password change failed",
+                Success = false,
+                ErrorMessage = errors
+            });
+
             TempData["ErrorMessage"] = $"Failed to change password: {errors}";
         }
 
@@ -277,6 +351,16 @@ public class SettingsController : Controller
 
         _logger.LogInformation("User {UserId} enabled MFA", user.Id);
 
+        // Audit log - 2FA enabled
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.TwoFactorEnabled,
+            EntityType = AuditEntityType.User,
+            EntityId = user.Id,
+            Description = $"Two-factor authentication enabled for {user.Email}"
+        });
+
         // Generate recovery codes
         var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
 
@@ -309,6 +393,17 @@ public class SettingsController : Controller
         {
             await _userManager.ResetAuthenticatorKeyAsync(user);
             _logger.LogInformation("User {UserId} disabled MFA", user.Id);
+
+            // Audit log - 2FA disabled
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.TwoFactorDisabled,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = $"Two-factor authentication disabled for {user.Email}"
+            });
+
             TempData["SuccessMessage"] = "Multi-factor authentication has been disabled.";
         }
         else
@@ -334,6 +429,17 @@ public class SettingsController : Controller
         }
 
         var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+
+        // Audit log - recovery codes generated
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.TwoFactorRecoveryCodesGenerated,
+            EntityType = AuditEntityType.User,
+            EntityId = user.Id,
+            Description = $"New recovery codes generated for {user.Email}"
+        });
+
         TempData["RecoveryCodes"] = recoveryCodes?.ToArray();
         TempData["SuccessMessage"] = "New recovery codes have been generated. Your old codes are no longer valid.";
 

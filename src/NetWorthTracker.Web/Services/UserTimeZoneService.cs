@@ -32,7 +32,7 @@ public class UserTimeZoneService : IUserTimeZoneService
         {
             // Try to get from claims first (faster)
             var timeZoneClaim = httpContext.User.FindFirst("TimeZone")?.Value;
-            if (!string.IsNullOrEmpty(timeZoneClaim))
+            if (!string.IsNullOrEmpty(timeZoneClaim) && SupportedTimeZones.IsSupported(timeZoneClaim))
             {
                 _cachedTimeZone = timeZoneClaim;
                 return _cachedTimeZone;
@@ -42,13 +42,20 @@ public class UserTimeZoneService : IUserTimeZoneService
             var userId = _userManager.GetUserId(httpContext.User);
             if (!string.IsNullOrEmpty(userId))
             {
-                // Note: This is synchronous for simplicity in views.
-                // The timezone is cached per-request to avoid repeated lookups.
-                var user = _userManager.FindByIdAsync(userId).GetAwaiter().GetResult();
-                if (user != null && !string.IsNullOrEmpty(user.TimeZone))
+                try
                 {
-                    _cachedTimeZone = user.TimeZone;
-                    return _cachedTimeZone;
+                    // Note: This is synchronous for simplicity in views.
+                    // The timezone is cached per-request to avoid repeated lookups.
+                    var user = _userManager.FindByIdAsync(userId).GetAwaiter().GetResult();
+                    if (user != null && !string.IsNullOrEmpty(user.TimeZone) && SupportedTimeZones.IsSupported(user.TimeZone))
+                    {
+                        _cachedTimeZone = user.TimeZone;
+                        return _cachedTimeZone;
+                    }
+                }
+                catch
+                {
+                    // If database lookup fails, fall through to default
                 }
             }
         }
