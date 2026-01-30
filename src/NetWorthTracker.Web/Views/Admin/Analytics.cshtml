@@ -1,0 +1,253 @@
+@model NetWorthTracker.Core.ViewModels.SubscriptionAnalyticsViewModel
+@{
+    ViewData["Title"] = "Subscription Analytics";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Admin</a></li>
+        <li class="breadcrumb-item active">Analytics</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0" style="border-bottom: none;">Subscription Analytics</h2>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-success);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Active</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);">@Model.TotalActive</h2>
+                <small class="text-muted">Paid subscriptions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-info);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Trialing</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-info);">@Model.TotalTrialing</h2>
+                <small class="text-muted">In trial period</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-secondary);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Canceled</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-secondary);">@Model.TotalCanceled</h2>
+                <small class="text-muted">User canceled</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid var(--color-danger);">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Expired</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-danger);">@Model.TotalExpired</h2>
+                <small class="text-muted">Payment failed</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Conversion & Churn Metrics -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Conversion & Retention</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 text-center border-end">
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-1">@Model.TrialConversionRate.ToString("0.0")%</h3>
+                            <p class="text-muted mb-0">Trial Conversion Rate</p>
+                            <small class="text-muted">Trials that became paid</small>
+                        </div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="mb-4">
+                            <h3 class="text-danger mb-1">@Model.MonthlyChurnRate.ToString("0.0")%</h3>
+                            <p class="text-muted mb-0">Monthly Churn Rate</p>
+                            <small class="text-muted">Lost this month</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <h3 class="text-warning mb-1">@Model.AnnualChurnRate.ToString("0.0")%</h3>
+                        <p class="text-muted mb-0">Annual Churn Rate (Projected)</p>
+                        <small class="text-muted">Based on current monthly rate</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Breakdown Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Subscription Status Breakdown</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.TotalSubscriptions > 0)
+                {
+                    <canvas id="statusChart" height="200"></canvas>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                        <div class="text-center">
+                            <i class="bi bi-pie-chart display-4"></i>
+                            <p class="mt-2 mb-0">No subscription data available</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trial Conversion Funnel -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Trial Conversion Funnel</h5>
+    </div>
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="p-3 rounded" style="background-color: rgba(13, 202, 240, 0.1);">
+                    <h3 style="color: #0dcaf0;" class="mb-1">@(Model.TotalTrialing + Model.TotalActive + Model.TotalExpired + Model.TotalCanceled)</h3>
+                    <p class="mb-0">Total Trials Started</p>
+                </div>
+            </div>
+            <div class="col-md-1 text-center d-none d-md-block">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="p-3 rounded" style="background-color: rgba(13, 110, 253, 0.1);">
+                    <h3 style="color: #0d6efd;" class="mb-1">@Model.TotalTrialing</h3>
+                    <p class="mb-0">Currently Trialing</p>
+                </div>
+            </div>
+            <div class="col-md-1 text-center d-none d-md-block">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="p-3 rounded" style="background-color: rgba(25, 135, 84, 0.1);">
+                    <h3 style="color: #198754;" class="mb-1">@Model.TotalActive</h3>
+                    <p class="mb-0">Converted to Paid</p>
+                </div>
+            </div>
+        </div>
+        <div class="progress mt-4" style="height: 30px;">
+            @{
+                var total = Model.TotalActive + Model.TotalTrialing + Model.TotalExpired + Model.TotalCanceled;
+                var activePercent = total > 0 ? (Model.TotalActive * 100.0 / total) : 0;
+                var trialingPercent = total > 0 ? (Model.TotalTrialing * 100.0 / total) : 0;
+                var canceledPercent = total > 0 ? (Model.TotalCanceled * 100.0 / total) : 0;
+                var expiredPercent = total > 0 ? (Model.TotalExpired * 100.0 / total) : 0;
+            }
+            <div class="progress-bar bg-success" role="progressbar" style="width: @activePercent.ToString("0.0")%" title="Active: @Model.TotalActive">Active</div>
+            <div class="progress-bar bg-info" role="progressbar" style="width: @trialingPercent.ToString("0.0")%" title="Trialing: @Model.TotalTrialing">Trialing</div>
+            <div class="progress-bar bg-secondary" role="progressbar" style="width: @canceledPercent.ToString("0.0")%" title="Canceled: @Model.TotalCanceled">Canceled</div>
+            <div class="progress-bar bg-danger" role="progressbar" style="width: @expiredPercent.ToString("0.0")%" title="Expired: @Model.TotalExpired">Expired</div>
+        </div>
+        <div class="d-flex justify-content-between mt-2">
+            <small class="text-success"><i class="bi bi-circle-fill me-1"></i>Active (@Model.TotalActive)</small>
+            <small class="text-info"><i class="bi bi-circle-fill me-1"></i>Trialing (@Model.TotalTrialing)</small>
+            <small class="text-secondary"><i class="bi bi-circle-fill me-1"></i>Canceled (@Model.TotalCanceled)</small>
+            <small class="text-danger"><i class="bi bi-circle-fill me-1"></i>Expired (@Model.TotalExpired)</small>
+        </div>
+    </div>
+</div>
+
+<!-- Status Breakdown Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Detailed Status Breakdown</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th class="text-end">Count</th>
+                    <th class="text-end">Percentage</th>
+                    <th style="width: 40%;">Distribution</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var status in Model.StatusBreakdown)
+                {
+                    var rowClass = status.Status switch
+                    {
+                        "Active" => "success",
+                        "Trialing" => "info",
+                        "Past Due" => "warning",
+                        "Canceled" => "secondary",
+                        "Expired" => "danger",
+                        _ => "secondary"
+                    };
+                    <tr>
+                        <td>
+                            <span class="badge bg-@rowClass">@status.Status</span>
+                        </td>
+                        <td class="text-end">@status.Count</td>
+                        <td class="text-end">@status.Percentage.ToString("0.0")%</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar bg-@rowClass" role="progressbar" style="width: @status.Percentage%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.TotalSubscriptions > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            const statusData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.StatusBreakdown));
+
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: statusData.map(d => d.status),
+                    datasets: [{
+                        data: statusData.map(d => d.count),
+                        backgroundColor: [
+                            '#198754', // Active - green
+                            '#0dcaf0', // Trialing - info
+                            '#ffc107', // PastDue - warning
+                            '#6c757d', // Canceled - secondary
+                            '#dc3545'  // Expired - danger
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        </script>
+    }
+}

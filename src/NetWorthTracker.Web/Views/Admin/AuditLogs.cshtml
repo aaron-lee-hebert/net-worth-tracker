@@ -1,0 +1,258 @@
+@model NetWorthTracker.Core.ViewModels.PagedResult<NetWorthTracker.Core.ViewModels.AuditLogViewModel>
+@inject NetWorthTracker.Core.Services.IUserTimeZoneService TimeZone
+@{
+    ViewData["Title"] = "Audit Logs";
+    var actionFilter = ViewBag.ActionFilter as string;
+    var entityTypeFilter = ViewBag.EntityTypeFilter as string;
+    var fromFilter = ViewBag.FromFilter as DateTime?;
+    var toFilter = ViewBag.ToFilter as DateTime?;
+    var userIdFilter = ViewBag.UserIdFilter as Guid?;
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Admin</a></li>
+        <li class="breadcrumb-item active">Audit Logs</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0" style="border-bottom: none;">Audit Logs</h2>
+    <div>
+        <span class="text-muted me-3">@Model.TotalCount total entries</span>
+        <a asp-action="ExportAuditLogs"
+           asp-route-action="@actionFilter"
+           asp-route-entityType="@entityTypeFilter"
+           asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+           asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+           class="btn btn-outline-primary">
+            <i class="bi bi-download me-1"></i>Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    <option value="LoginSuccess" selected="@(actionFilter == "LoginSuccess")">Login Success</option>
+                    <option value="LoginFailed" selected="@(actionFilter == "LoginFailed")">Login Failed</option>
+                    <option value="Logout" selected="@(actionFilter == "Logout")">Logout</option>
+                    <option value="Register" selected="@(actionFilter == "Register")">Register</option>
+                    <option value="PasswordChange" selected="@(actionFilter == "PasswordChange")">Password Change</option>
+                    <option value="PasswordReset" selected="@(actionFilter == "PasswordReset")">Password Reset</option>
+                    <option value="AccountCreated" selected="@(actionFilter == "AccountCreated")">Account Created</option>
+                    <option value="AccountUpdated" selected="@(actionFilter == "AccountUpdated")">Account Updated</option>
+                    <option value="AccountDeleted" selected="@(actionFilter == "AccountDeleted")">Account Deleted</option>
+                    <option value="BalanceUpdated" selected="@(actionFilter == "BalanceUpdated")">Balance Updated</option>
+                    <option value="DataExported" selected="@(actionFilter == "DataExported")">Data Exported</option>
+                    <option value="AdminGranted" selected="@(actionFilter == "AdminGranted")">Admin Granted</option>
+                    <option value="AdminRevoked" selected="@(actionFilter == "AdminRevoked")">Admin Revoked</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Entity Type</label>
+                <select name="entityType" class="form-select">
+                    <option value="">All Types</option>
+                    <option value="User" selected="@(entityTypeFilter == "User")">User</option>
+                    <option value="Account" selected="@(entityTypeFilter == "Account")">Account</option>
+                    <option value="Subscription" selected="@(entityTypeFilter == "Subscription")">Subscription</option>
+                    <option value="AlertConfiguration" selected="@(entityTypeFilter == "AlertConfiguration")">Alert</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="from" class="form-control" value="@fromFilter?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="to" class="form-control" value="@toFilter?.ToString("yyyy-MM-dd")">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+                @if (!string.IsNullOrEmpty(actionFilter) || !string.IsNullOrEmpty(entityTypeFilter) || fromFilter.HasValue || toFilter.HasValue || userIdFilter.HasValue)
+                {
+                    <a asp-action="AuditLogs" class="btn btn-outline-secondary">Clear</a>
+                }
+            </div>
+            @if (userIdFilter.HasValue)
+            {
+                <input type="hidden" name="userId" value="@userIdFilter" />
+            }
+        </form>
+    </div>
+</div>
+
+@if (userIdFilter.HasValue)
+{
+    <div class="alert alert-info d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-filter me-2"></i>Showing logs for a specific user</span>
+        <a asp-action="AuditLogs" class="btn btn-sm btn-outline-info">Show All Users</a>
+    </div>
+}
+
+<!-- Audit Log Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Description</th>
+                        <th style="width: 120px;">IP Address</th>
+                        <th style="width: 60px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model.Items)
+                    {
+                        <tr class="@(!log.Success ? "table-danger" : "")">
+                            <td>
+                                <small>@TimeZone.ToUserTime(log.Timestamp).ToString("MMM d, yyyy")</small><br>
+                                <small class="text-muted">@TimeZone.ToUserTime(log.Timestamp).ToString("h:mm:ss tt")</small>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(log.UserEmail))
+                                {
+                                    <span>@log.UserEmail</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">System</span>
+                                }
+                            </td>
+                            <td><code>@log.Action</code></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(log.EntityType))
+                                {
+                                    <span class="badge bg-secondary">@log.EntityType</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(log.Description))
+                                {
+                                    <span title="@log.Description">
+                                        @(log.Description.Length > 60 ? log.Description.Substring(0, 60) + "..." : log.Description)
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(log.ErrorMessage))
+                                {
+                                    <br><small class="text-danger">@log.ErrorMessage</small>
+                                }
+                            </td>
+                            <td><small class="text-muted">@log.IpAddress</small></td>
+                            <td class="text-center">
+                                @if (log.Success)
+                                {
+                                    <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger" title="@log.ErrorMessage"><i class="bi bi-x-circle-fill"></i></span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-journal-x display-4"></i>
+        <p class="mt-3">No audit logs found matching your criteria.</p>
+    </div>
+}
+
+<!-- Pagination -->
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-4" aria-label="Audit log pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link"
+                   asp-action="AuditLogs"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-action="@actionFilter"
+                   asp-route-entityType="@entityTypeFilter"
+                   asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+                   asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+                   asp-route-userId="@userIdFilter">Previous</a>
+            </li>
+            @{
+                var startPage = Math.Max(1, Model.Page - 2);
+                var endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+            }
+            @if (startPage > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link"
+                       asp-action="AuditLogs"
+                       asp-route-page="1"
+                       asp-route-action="@actionFilter"
+                       asp-route-entityType="@entityTypeFilter"
+                       asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-userId="@userIdFilter">1</a>
+                </li>
+                @if (startPage > 2)
+                {
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                }
+            }
+            @for (int i = startPage; i <= endPage; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="AuditLogs"
+                       asp-route-page="@i"
+                       asp-route-action="@actionFilter"
+                       asp-route-entityType="@entityTypeFilter"
+                       asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-userId="@userIdFilter">@i</a>
+                </li>
+            }
+            @if (endPage < Model.TotalPages)
+            {
+                @if (endPage < Model.TotalPages - 1)
+                {
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                }
+                <li class="page-item">
+                    <a class="page-link"
+                       asp-action="AuditLogs"
+                       asp-route-page="@Model.TotalPages"
+                       asp-route-action="@actionFilter"
+                       asp-route-entityType="@entityTypeFilter"
+                       asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+                       asp-route-userId="@userIdFilter">@Model.TotalPages</a>
+                </li>
+            }
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link"
+                   asp-action="AuditLogs"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-action="@actionFilter"
+                   asp-route-entityType="@entityTypeFilter"
+                   asp-route-from="@fromFilter?.ToString("yyyy-MM-dd")"
+                   asp-route-to="@toFilter?.ToString("yyyy-MM-dd")"
+                   asp-route-userId="@userIdFilter">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

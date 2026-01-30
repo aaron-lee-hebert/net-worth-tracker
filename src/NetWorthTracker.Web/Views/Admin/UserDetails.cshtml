@@ -1,0 +1,248 @@
+@model NetWorthTracker.Core.ViewModels.AdminUserDetailsViewModel
+@inject NetWorthTracker.Core.Services.IUserTimeZoneService TimeZone
+@{
+    ViewData["Title"] = $"User: {Model.DisplayName}";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Admin</a></li>
+        <li class="breadcrumb-item"><a asp-action="Users">Users</a></li>
+        <li class="breadcrumb-item active">@Model.DisplayName</li>
+    </ol>
+</nav>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- User Info -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">User Information</h5>
+                @if (Model.IsAdmin)
+                {
+                    <span class="badge bg-primary"><i class="bi bi-shield-check me-1"></i>Admin</span>
+                }
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">
+                        @Model.Email
+                        @if (Model.EmailConfirmed)
+                        {
+                            <span class="text-success ms-1" title="Verified"><i class="bi bi-check-circle-fill"></i></span>
+                        }
+                        else
+                        {
+                            <span class="text-warning ms-1" title="Not verified"><i class="bi bi-exclamation-circle-fill"></i></span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">@Model.FirstName @Model.LastName</dd>
+
+                    <dt class="col-sm-4">Joined</dt>
+                    <dd class="col-sm-8">@TimeZone.ToUserTime(Model.CreatedAt).ToString("MMMM d, yyyy 'at' h:mm tt")</dd>
+
+                    @if (Model.UpdatedAt.HasValue)
+                    {
+                        <dt class="col-sm-4">Last Updated</dt>
+                        <dd class="col-sm-8">@TimeZone.ToUserTime(Model.UpdatedAt.Value).ToString("MMMM d, yyyy 'at' h:mm tt")</dd>
+                    }
+
+                    <dt class="col-sm-4">2FA</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.TwoFactorEnabled)
+                        {
+                            <span class="text-success"><i class="bi bi-shield-check me-1"></i>Enabled</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Disabled</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">Locale</dt>
+                    <dd class="col-sm-8">@Model.Locale</dd>
+
+                    <dt class="col-sm-4">Timezone</dt>
+                    <dd class="col-sm-8">@Model.TimeZone</dd>
+                </dl>
+
+                <hr>
+
+                <form asp-action="SetAdminStatus" method="post" class="mt-3">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    @if (Model.IsAdmin)
+                    {
+                        <input type="hidden" name="isAdmin" value="false" />
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to revoke admin access for this user?')">
+                            <i class="bi bi-shield-x me-1"></i>Revoke Admin Access
+                        </button>
+                    }
+                    else
+                    {
+                        <input type="hidden" name="isAdmin" value="true" />
+                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Are you sure you want to grant admin access to this user?')">
+                            <i class="bi bi-shield-check me-1"></i>Grant Admin Access
+                        </button>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Info -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Subscription</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.SubscriptionStatus.HasValue)
+                {
+                    var badgeClass = Model.SubscriptionStatus.Value switch
+                    {
+                        NetWorthTracker.Core.Entities.SubscriptionStatus.Active => "bg-success",
+                        NetWorthTracker.Core.Entities.SubscriptionStatus.Trialing => "bg-info",
+                        NetWorthTracker.Core.Entities.SubscriptionStatus.PastDue => "bg-warning",
+                        NetWorthTracker.Core.Entities.SubscriptionStatus.Canceled => "bg-secondary",
+                        NetWorthTracker.Core.Entities.SubscriptionStatus.Expired => "bg-danger",
+                        _ => "bg-secondary"
+                    };
+
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge @badgeClass fs-6">@Model.SubscriptionStatus.Value</span>
+                        </dd>
+
+                        @if (Model.IsInTrial == true)
+                        {
+                            <dt class="col-sm-4">Trial Started</dt>
+                            <dd class="col-sm-8">@(Model.TrialStartedAt.HasValue ? TimeZone.ToUserTime(Model.TrialStartedAt.Value).ToString("MMM d, yyyy") : "-")</dd>
+
+                            <dt class="col-sm-4">Trial Ends</dt>
+                            <dd class="col-sm-8">
+                                @(Model.TrialEndsAt.HasValue ? TimeZone.ToUserTime(Model.TrialEndsAt.Value).ToString("MMM d, yyyy") : "-")
+                                <span class="badge bg-info ms-1">@Model.TrialDaysRemaining days left</span>
+                            </dd>
+                        }
+
+                        @if (Model.CurrentPeriodEnd.HasValue)
+                        {
+                            <dt class="col-sm-4">Period Ends</dt>
+                            <dd class="col-sm-8">@TimeZone.ToUserTime(Model.CurrentPeriodEnd.Value).ToString("MMM d, yyyy")</dd>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.StripeCustomerId))
+                        {
+                            <dt class="col-sm-4">Stripe Customer</dt>
+                            <dd class="col-sm-8"><code>@Model.StripeCustomerId</code></dd>
+                        }
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No subscription found for this user.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Account Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h4 class="text-primary">@Model.AccountCount</h4>
+                <p class="text-muted mb-0">Accounts</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-success">@Model.TotalAssets.ToString("C")</h4>
+                <p class="text-muted mb-0">Total Assets</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="text-danger">@Model.TotalLiabilities.ToString("C")</h4>
+                <p class="text-muted mb-0">Total Liabilities</p>
+            </div>
+            <div class="col-md-3">
+                <h4 class="@(Model.NetWorth >= 0 ? "text-success" : "text-danger")">@Model.NetWorth.ToString("C")</h4>
+                <p class="text-muted mb-0">Net Worth</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Recent Activity</h5>
+        <a asp-action="AuditLogs" asp-route-userId="@Model.Id" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.RecentActivity.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                            <th>IP</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.RecentActivity.Take(10))
+                        {
+                            <tr>
+                                <td><small>@TimeZone.ToUserTime(log.Timestamp).ToString("MMM d, h:mm tt")</small></td>
+                                <td><code>@log.Action</code></td>
+                                <td>@log.Description</td>
+                                <td><small class="text-muted">@log.IpAddress</small></td>
+                                <td>
+                                    @if (log.Success)
+                                    {
+                                        <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger" title="@log.ErrorMessage"><i class="bi bi-x-circle-fill"></i></span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 text-center text-muted">
+                No activity recorded for this user.
+            </div>
+        }
+    </div>
+</div>
