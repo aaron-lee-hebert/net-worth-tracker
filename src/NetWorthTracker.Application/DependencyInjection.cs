@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<IAccountManagementService, AccountManagementService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IDataExportService, DataExportService>();
 
         return services;
     }
