@@ -2,10 +2,8 @@ using NetWorthTracker.Core.Entities;
 
 namespace NetWorthTracker.Core.Interfaces;
 
-public interface IForecastAssumptionsRepository
+public interface IForecastAssumptionsRepository : IRepository<ForecastAssumptions>
 {
     Task<ForecastAssumptions?> GetByUserIdAsync(Guid userId);
-    Task<ForecastAssumptions> CreateAsync(ForecastAssumptions assumptions);
-    Task UpdateAsync(ForecastAssumptions assumptions);
     Task<ForecastAssumptions> GetOrCreateAsync(Guid userId);
 }

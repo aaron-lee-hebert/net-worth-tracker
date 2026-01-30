@@ -5,44 +5,55 @@ using NetWorthTracker.Core.Interfaces;
 
 namespace NetWorthTracker.Infrastructure.Repositories;
 
-public class SubscriptionRepository : ISubscriptionRepository
+public class SubscriptionRepository : RepositoryBase<Subscription>, ISubscriptionRepository
 {
-    private readonly ISession _session;
-
-    public SubscriptionRepository(ISession session)
+    public SubscriptionRepository(ISession session) : base(session)
     {
-        _session = session;
     }
 
     public async Task<Subscription?> GetByUserIdAsync(Guid userId)
     {
-        return await _session.Query<Subscription>()
+        return await Session.Query<Subscription>()
             .FirstOrDefaultAsync(s => s.UserId == userId);
     }
 
     public async Task<Subscription?> GetByStripeCustomerIdAsync(string stripeCustomerId)
     {
-        return await _session.Query<Subscription>()
+        return await Session.Query<Subscription>()
             .FirstOrDefaultAsync(s => s.StripeCustomerId == stripeCustomerId);
     }
 
     public async Task<Subscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId)
     {
-        return await _session.Query<Subscription>()
+        return await Session.Query<Subscription>()
             .FirstOrDefaultAsync(s => s.StripeSubscriptionId == stripeSubscriptionId);
     }
 
-    public async Task<Subscription> CreateAsync(Subscription subscription)
+    public async Task<int> GetCountByStatusAsync(SubscriptionStatus status)
     {
-        await _session.SaveAsync(subscription);
-        await _session.FlushAsync();
-        return subscription;
+        return await Session.Query<Subscription>()
+            .CountAsync(s => s.Status == status);
     }
 
-    public async Task UpdateAsync(Subscription subscription)
+    public async Task<IEnumerable<Subscription>> GetByStatusAsync(SubscriptionStatus status, int limit = 100)
     {
-        subscription.UpdatedAt = DateTime.UtcNow;
-        await _session.UpdateAsync(subscription);
-        await _session.FlushAsync();
+        return await Session.Query<Subscription>()
+            .Where(s => s.Status == status)
+            .OrderByDescending(s => s.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Subscription>> GetAllWithUsersAsync()
+    {
+        return await Session.Query<Subscription>()
+            .Fetch(s => s.User)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetTotalCountAsync()
+    {
+        return await Session.Query<Subscription>().CountAsync();
     }
 }
