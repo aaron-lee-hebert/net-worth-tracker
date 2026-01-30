@@ -18,6 +18,7 @@ public class AlertServiceTests
     private Mock<IAccountRepository> _mockAccountRepository = null!;
     private Mock<IBalanceHistoryRepository> _mockBalanceHistoryRepository = null!;
     private Mock<IEmailService> _mockEmailService = null!;
+    private Mock<IProcessedJobRepository> _mockProcessedJobRepository = null!;
     private Mock<ILogger<AlertService>> _mockLogger = null!;
     private AlertService _service = null!;
     private Guid _testUserId;
@@ -31,7 +32,12 @@ public class AlertServiceTests
         _mockAccountRepository = new Mock<IAccountRepository>();
         _mockBalanceHistoryRepository = new Mock<IBalanceHistoryRepository>();
         _mockEmailService = new Mock<IEmailService>();
+        _mockProcessedJobRepository = new Mock<IProcessedJobRepository>();
         _mockLogger = new Mock<ILogger<AlertService>>();
+
+        // Default setup: no jobs have been processed
+        _mockProcessedJobRepository.Setup(r => r.ExistsAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(false);
 
         _service = new AlertService(
             _mockConfigRepository.Object,
@@ -39,6 +45,7 @@ public class AlertServiceTests
             _mockAccountRepository.Object,
             _mockBalanceHistoryRepository.Object,
             _mockEmailService.Object,
+            _mockProcessedJobRepository.Object,
             _mockLogger.Object);
     }
 

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
 using NetWorthTracker.Application.Interfaces;
@@ -18,6 +20,8 @@ public class AdminControllerTests
 {
     private Mock<IAdminService> _mockAdminService = null!;
     private Mock<UserManager<ApplicationUser>> _mockUserManager = null!;
+    private Mock<HealthCheckService> _mockHealthCheckService = null!;
+    private Mock<IConfiguration> _mockConfiguration = null!;
     private AdminController _controller = null!;
     private Guid _testAdminUserId;
 
@@ -34,9 +38,14 @@ public class AdminControllerTests
         _mockUserManager.Setup(um => um.GetUserId(It.IsAny<ClaimsPrincipal>()))
             .Returns(_testAdminUserId.ToString());
 
+        _mockHealthCheckService = new Mock<HealthCheckService>();
+        _mockConfiguration = new Mock<IConfiguration>();
+
         _controller = new AdminController(
             _mockAdminService.Object,
-            _mockUserManager.Object);
+            _mockUserManager.Object,
+            _mockHealthCheckService.Object,
+            _mockConfiguration.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {

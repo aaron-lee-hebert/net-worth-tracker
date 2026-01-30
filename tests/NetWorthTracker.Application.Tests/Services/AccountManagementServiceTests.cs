@@ -15,6 +15,7 @@ public class AccountManagementServiceTests
     private Mock<IAccountRepository> _mockAccountRepository = null!;
     private Mock<IBalanceHistoryRepository> _mockBalanceHistoryRepository = null!;
     private Mock<IAuditService> _mockAuditService = null!;
+    private Mock<IEncryptionService> _mockEncryptionService = null!;
     private AccountManagementService _service = null!;
     private Guid _testUserId;
 
@@ -25,10 +26,21 @@ public class AccountManagementServiceTests
         _mockAccountRepository = new Mock<IAccountRepository>();
         _mockBalanceHistoryRepository = new Mock<IBalanceHistoryRepository>();
         _mockAuditService = new Mock<IAuditService>();
+        _mockEncryptionService = new Mock<IEncryptionService>();
+
+        // Configure encryption service to pass through values (for testing)
+        _mockEncryptionService.Setup(e => e.Encrypt(It.IsAny<string?>()))
+            .Returns<string?>(value => value != null ? $"ENC:{value}" : null);
+        _mockEncryptionService.Setup(e => e.Decrypt(It.IsAny<string?>()))
+            .Returns<string?>(value => value != null && value.StartsWith("ENC:") ? value.Substring(4) : value);
+        _mockEncryptionService.Setup(e => e.IsEncrypted(It.IsAny<string?>()))
+            .Returns<string?>(value => value != null && value.StartsWith("ENC:"));
+
         _service = new AccountManagementService(
             _mockAccountRepository.Object,
             _mockBalanceHistoryRepository.Object,
-            _mockAuditService.Object);
+            _mockAuditService.Object,
+            _mockEncryptionService.Object);
     }
 
     #region GetAccounts Tests
@@ -399,7 +411,7 @@ public class AccountManagementServiceTests
     }
 
     [Test]
-    public async Task DeleteAccountAsync_ValidAccount_DeletesAccount()
+    public async Task DeleteAccountAsync_ValidAccount_SoftDeletesAccount()
     {
         // Arrange
         var accountId = Guid.NewGuid();
@@ -413,7 +425,9 @@ public class AccountManagementServiceTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _mockAccountRepository.Verify(r => r.DeleteAsync(account), Times.Once);
+        account.IsDeleted.Should().BeTrue();
+        account.DeletedAt.Should().NotBeNull();
+        _mockAccountRepository.Verify(r => r.UpdateAsync(account), Times.Once);
     }
 
     #endregion
