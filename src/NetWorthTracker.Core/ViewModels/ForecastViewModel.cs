@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace NetWorthTracker.Core.ViewModels;
 
 public class ForecastViewModel
@@ -41,13 +43,31 @@ public class ForecastSummary
     public DateTime ProjectionDate { get; set; }
 }
 
+/// <summary>
+/// View model for forecast growth rate assumptions
+/// </summary>
 public class ForecastAssumptionsViewModel
 {
-    public decimal InvestmentGrowthRate { get; set; } = 7.0m;   // Displayed as percentage
+    [Range(-50, 100, ErrorMessage = "Investment growth rate must be between -50% and 100%")]
+    [Display(Name = "Investment Growth Rate (%)")]
+    public decimal InvestmentGrowthRate { get; set; } = 7.0m;
+
+    [Range(-50, 100, ErrorMessage = "Real estate growth rate must be between -50% and 100%")]
+    [Display(Name = "Real Estate Growth Rate (%)")]
     public decimal RealEstateGrowthRate { get; set; } = 2.0m;
+
+    [Range(-50, 100, ErrorMessage = "Banking growth rate must be between -50% and 100%")]
+    [Display(Name = "Banking Growth Rate (%)")]
     public decimal BankingGrowthRate { get; set; } = 0.5m;
+
+    [Range(-50, 100, ErrorMessage = "Business growth rate must be between -50% and 100%")]
+    [Display(Name = "Business Growth Rate (%)")]
     public decimal BusinessGrowthRate { get; set; } = 3.0m;
+
+    [Range(0, 100, ErrorMessage = "Vehicle depreciation rate must be between 0% and 100%")]
+    [Display(Name = "Vehicle Depreciation Rate (%)")]
     public decimal VehicleDepreciationRate { get; set; } = 15.0m;
+
     public bool HasCustomOverrides { get; set; }
 
     // Defaults for display

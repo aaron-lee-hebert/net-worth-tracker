@@ -117,6 +117,11 @@ public static class SupportedTimeZones
     /// </summary>
     public static DateTime ConvertFromUtc(DateTime utcDateTime, string timeZoneId)
     {
+        if (string.IsNullOrEmpty(timeZoneId))
+        {
+            return utcDateTime;
+        }
+
         if (utcDateTime.Kind == DateTimeKind.Local)
         {
             utcDateTime = utcDateTime.ToUniversalTime();
@@ -126,28 +131,21 @@ public static class SupportedTimeZones
             utcDateTime = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
         }
 
-        try
+        // .NET 6+ TryFindSystemTimeZoneById handles both IANA and Windows IDs
+        if (TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var timeZone))
         {
-            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
             return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, timeZone);
         }
-        catch (TimeZoneNotFoundException)
+
+        // Fallback: try to convert IANA ID to Windows ID (for older systems without ICU)
+        if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId, out var windowsId) &&
+            TimeZoneInfo.TryFindSystemTimeZoneById(windowsId, out var windowsTimeZone))
         {
-            // Fallback: try to find by IANA ID on Windows
-            try
-            {
-                if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId, out var windowsId))
-                {
-                    var timeZone = TimeZoneInfo.FindSystemTimeZoneById(windowsId);
-                    return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, timeZone);
-                }
-            }
-            catch
-            {
-                // Ignore and return UTC
-            }
-            return utcDateTime;
+            return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, windowsTimeZone);
         }
+
+        // If all else fails, return UTC
+        return utcDateTime;
     }
 
     /// <summary>
