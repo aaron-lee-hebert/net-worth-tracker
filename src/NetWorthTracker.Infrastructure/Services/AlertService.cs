@@ -50,7 +50,7 @@ public class AlertService : IAlertService
             MonthlySnapshotEnabled = true
         };
 
-        await _configRepository.CreateAsync(config);
+        await _configRepository.AddAsync(config);
         return config;
     }
 
@@ -114,7 +114,7 @@ public class AlertService : IAlertService
             EmailSent = false
         };
 
-        await _snapshotRepository.CreateAsync(snapshot);
+        await _snapshotRepository.AddAsync(snapshot);
         _logger.LogInformation("Generated monthly snapshot for user {UserId} for {Month}", userId, startOfMonth.ToString("yyyy-MM"));
 
         return snapshot;

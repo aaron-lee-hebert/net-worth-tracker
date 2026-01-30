@@ -42,6 +42,9 @@ public class ApplicationUserMap : ClassMap<ApplicationUser>
         // Timezone preference (IANA timezone identifier)
         Map(x => x.TimeZone).Length(50).Not.Nullable().Default("'America/New_York'");
 
+        // Admin flag
+        Map(x => x.IsAdmin).Not.Nullable().Default("false");
+
         HasMany(x => x.Accounts)
             // Key column set by convention (UserId for SQLite, user_id for PostgreSQL)
             .Inverse()
