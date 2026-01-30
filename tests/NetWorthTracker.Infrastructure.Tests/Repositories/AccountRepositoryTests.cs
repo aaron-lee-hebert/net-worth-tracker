@@ -6,7 +6,7 @@ using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Enums;
 using NetWorthTracker.Infrastructure.Repositories;
 
-namespace NetWorthTracker.Tests.Repositories;
+namespace NetWorthTracker.Infrastructure.Tests.Repositories;
 
 [TestFixture]
 public class AccountRepositoryTests
