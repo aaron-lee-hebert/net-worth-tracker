@@ -16,11 +16,16 @@ public class SendGridSettings
 public class SendGridEmailService : IEmailService
 {
     private readonly SendGridSettings _settings;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SendGridEmailService> _logger;
 
-    public SendGridEmailService(IOptions<SendGridSettings> settings, ILogger<SendGridEmailService> logger)
+    public SendGridEmailService(
+        IOptions<SendGridSettings> settings,
+        IHttpClientFactory httpClientFactory,
+        ILogger<SendGridEmailService> logger)
     {
         _settings = settings.Value;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -36,7 +41,8 @@ public class SendGridEmailService : IEmailService
 
         try
         {
-            var client = new SendGridClient(_settings.ApiKey);
+            var httpClient = _httpClientFactory.CreateClient("SendGrid");
+            var client = new SendGridClient(httpClient, _settings.ApiKey);
             var from = new EmailAddress(_settings.FromEmail, _settings.FromName);
             var toAddress = new EmailAddress(to);
             var msg = MailHelper.CreateSingleEmail(from, toAddress, subject, null, htmlBody);
