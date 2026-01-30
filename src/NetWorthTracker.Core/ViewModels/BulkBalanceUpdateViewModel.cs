@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace NetWorthTracker.Core.ViewModels;
 
 /// <summary>
@@ -5,8 +7,17 @@ namespace NetWorthTracker.Core.ViewModels;
 /// </summary>
 public class BulkBalanceUpdateViewModel
 {
+    [Required(ErrorMessage = "Recorded date is required")]
+    [DataType(DataType.Date)]
+    [Display(Name = "Recorded Date")]
     public DateTime RecordedAt { get; set; }
+
+    [StringLength(1000, ErrorMessage = "Notes cannot exceed 1000 characters")]
     public string? Notes { get; set; }
+
+    [Required(ErrorMessage = "At least one account must be provided")]
+    [MinLength(1, ErrorMessage = "At least one account must be updated")]
+    [MaxLength(100, ErrorMessage = "Cannot update more than 100 accounts at once")]
     public List<AccountBalanceUpdateItem> Accounts { get; set; } = new();
 }
 
@@ -15,7 +26,14 @@ public class BulkBalanceUpdateViewModel
 /// </summary>
 public class AccountBalanceUpdateItem
 {
+    [Required(ErrorMessage = "Account ID is required")]
     public Guid AccountId { get; set; }
+
+    [Required(ErrorMessage = "New balance is required")]
+    [Range(typeof(decimal), "-999999999999.99", "999999999999.99",
+        ErrorMessage = "Balance must be between -999,999,999,999.99 and 999,999,999,999.99")]
+    [DataType(DataType.Currency)]
+    [Display(Name = "New Balance")]
     public decimal NewBalance { get; set; }
 }
 
@@ -30,7 +48,7 @@ public class BulkBalanceUpdateResponse
 }
 
 /// <summary>
-/// Account data for the bulk update modal
+/// Account data for the bulk update modal (read-only, no validation needed)
 /// </summary>
 public class AccountForBulkUpdateViewModel
 {

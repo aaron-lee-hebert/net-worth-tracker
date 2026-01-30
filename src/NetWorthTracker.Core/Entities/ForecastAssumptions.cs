@@ -1,8 +1,7 @@
 namespace NetWorthTracker.Core.Entities;
 
-public class ForecastAssumptions
+public class ForecastAssumptions : BaseEntity
 {
-    public virtual Guid Id { get; set; }
     public virtual Guid UserId { get; set; }
 
     // Asset growth rates (annual, as decimals e.g., 0.07 = 7%)
@@ -12,8 +11,12 @@ public class ForecastAssumptions
     public virtual decimal? BusinessGrowthRate { get; set; }
     public virtual decimal? VehicleDepreciationRate { get; set; }
 
-    public virtual DateTime CreatedAt { get; set; }
-    public virtual DateTime ModifiedAt { get; set; }
+    // ModifiedAt is an alias for UpdatedAt for backward compatibility
+    public virtual DateTime ModifiedAt
+    {
+        get => UpdatedAt ?? CreatedAt;
+        set => UpdatedAt = value;
+    }
 
     // Default values (static, for reference)
     public static class Defaults

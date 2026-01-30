@@ -21,6 +21,11 @@ public class ApplicationUser : IdentityUser<Guid>
     public virtual string TimeZone { get; set; } = "America/New_York";
 
     /// <summary>
+    /// Whether the user has admin privileges
+    /// </summary>
+    public virtual bool IsAdmin { get; set; } = false;
+
+    /// <summary>
     /// Gets the user's display name. Returns FirstName + LastName if available, otherwise falls back to UserName.
     /// </summary>
     public virtual string DisplayName
