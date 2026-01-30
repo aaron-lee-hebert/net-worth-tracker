@@ -176,3 +176,27 @@ public class PagedResult<T>
     public bool HasPreviousPage => Page > 1;
     public bool HasNextPage => Page < TotalPages;
 }
+
+/// <summary>
+/// Health dashboard view model for admin health page
+/// </summary>
+public class HealthDashboardViewModel
+{
+    public string OverallStatus { get; set; } = string.Empty;
+    public DateTime CheckedAt { get; set; }
+    public string? SeqServerUrl { get; set; }
+    public List<HealthCheckViewModel> Checks { get; set; } = new();
+}
+
+/// <summary>
+/// Individual health check result
+/// </summary>
+public class HealthCheckViewModel
+{
+    public string Name { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public TimeSpan Duration { get; set; }
+    public string? Exception { get; set; }
+    public Dictionary<string, string> Data { get; set; } = new();
+}
