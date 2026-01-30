@@ -47,6 +47,7 @@ public class AccountCreateViewModel
     public string? Institution { get; set; }
 
     [StringLength(50, ErrorMessage = "Account number cannot exceed 50 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9\-\*]+$", ErrorMessage = "Account number can only contain letters, numbers, hyphens, and asterisks")]
     [Display(Name = "Account Number")]
     public string? AccountNumber { get; set; }
 }
@@ -83,6 +84,7 @@ public class AccountEditViewModel
     public string? Institution { get; set; }
 
     [StringLength(50, ErrorMessage = "Account number cannot exceed 50 characters")]
+    [RegularExpression(@"^[a-zA-Z0-9\-\*]+$", ErrorMessage = "Account number can only contain letters, numbers, hyphens, and asterisks")]
     [Display(Name = "Account Number")]
     public string? AccountNumber { get; set; }
 
