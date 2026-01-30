@@ -1,11 +1,15 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
+using NetWorthTracker.Application.Interfaces;
+using NetWorthTracker.Web.Middleware;
 
 namespace NetWorthTracker.Web.Controllers;
 
@@ -19,6 +23,8 @@ public class SettingsController : Controller
     private readonly IAlertService _alertService;
     private readonly IEmailService _emailService;
     private readonly IAuditService _auditService;
+    private readonly IUserSessionService _sessionService;
+    private readonly IDataExportService _dataExportService;
     private readonly ILogger<SettingsController> _logger;
 
     public SettingsController(
@@ -29,6 +35,8 @@ public class SettingsController : Controller
         IAlertService alertService,
         IEmailService emailService,
         IAuditService auditService,
+        IUserSessionService sessionService,
+        IDataExportService dataExportService,
         ILogger<SettingsController> logger)
     {
         _userManager = userManager;
@@ -38,6 +46,8 @@ public class SettingsController : Controller
         _alertService = alertService;
         _emailService = emailService;
         _auditService = auditService;
+        _sessionService = sessionService;
+        _dataExportService = dataExportService;
         _logger = logger;
     }
 
@@ -56,6 +66,12 @@ public class SettingsController : Controller
             Selected = l.Key == user.Locale
         });
         ViewBag.SupportedTimeZones = GetTimeZoneSelectList(user.TimeZone);
+
+        // Load active sessions for display
+        var sessions = await _sessionService.GetUserSessionsAsync(user.Id);
+        var currentSessionToken = User.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
+        ViewBag.ActiveSessions = sessions;
+        ViewBag.CurrentSessionToken = currentSessionToken;
 
         return View(user);
     }
@@ -256,6 +272,22 @@ public class SettingsController : Controller
         var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         if (result.Succeeded)
         {
+            // Revoke all sessions except current for security
+            var currentSessionToken = User.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
+            if (!string.IsNullOrEmpty(currentSessionToken))
+            {
+                var currentSession = await _sessionService.ValidateSessionAsync(currentSessionToken);
+                if (currentSession != null)
+                {
+                    await _sessionService.RevokeAllUserSessionsExceptAsync(user.Id, currentSession.Id, "Password changed");
+                }
+            }
+            else
+            {
+                // No current session token - revoke all sessions
+                await _sessionService.RevokeAllUserSessionsAsync(user.Id, "Password changed");
+            }
+
             await _signInManager.RefreshSignInAsync(user);
 
             // Audit log - password changed successfully
@@ -268,7 +300,7 @@ public class SettingsController : Controller
                 Description = "Password changed successfully"
             });
 
-            TempData["SuccessMessage"] = "Password changed successfully.";
+            TempData["SuccessMessage"] = "Password changed successfully. All other sessions have been signed out.";
         }
         else
         {
@@ -444,6 +476,79 @@ public class SettingsController : Controller
         TempData["SuccessMessage"] = "New recovery codes have been generated. Your old codes are no longer valid.";
 
         return RedirectToAction(nameof(MfaRecoveryCodes));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("export")]
+    public async Task<IActionResult> ExportAllData()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        var result = await _dataExportService.ExportAllUserDataAsync(user.Id);
+
+        if (!result.Success)
+        {
+            TempData["ErrorMessage"] = result.ErrorMessage ?? "Failed to export data.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        return File(result.Content!, result.ContentType, result.FileName);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RevokeSession(Guid sessionId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        // Verify the session belongs to this user
+        var session = await _sessionService.GetSessionByIdAsync(sessionId);
+        if (session == null || session.UserId != user.Id)
+        {
+            TempData["ErrorMessage"] = "Session not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Check if trying to revoke current session
+        var currentSessionToken = User.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
+        if (session.SessionToken == currentSessionToken)
+        {
+            TempData["ErrorMessage"] = "Cannot revoke your current session. Use the logout button instead.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        await _sessionService.RevokeSessionAsync(sessionId, "Revoked by user");
+
+        TempData["SuccessMessage"] = "Session has been revoked.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SignOutAllDevices()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        var currentSessionToken = User.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
+        if (!string.IsNullOrEmpty(currentSessionToken))
+        {
+            var currentSession = await _sessionService.ValidateSessionAsync(currentSessionToken);
+            if (currentSession != null)
+            {
+                await _sessionService.RevokeAllUserSessionsExceptAsync(user.Id, currentSession.Id, "User signed out all devices");
+                TempData["SuccessMessage"] = "All other devices have been signed out.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // Fallback: revoke all sessions
+        await _sessionService.RevokeAllUserSessionsAsync(user.Id, "User signed out all devices");
+        TempData["SuccessMessage"] = "All sessions have been signed out.";
+        return RedirectToAction(nameof(Index));
     }
 
     private string FormatKey(string unformattedKey)

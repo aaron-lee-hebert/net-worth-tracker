@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Application.Interfaces;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Enums;
@@ -56,6 +57,7 @@ public class AccountsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("account-create")]
     public async Task<IActionResult> Create(AccountCreateViewModel model)
     {
         if (!ModelState.IsValid)
@@ -101,6 +103,7 @@ public class AccountsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("account-update")]
     public async Task<IActionResult> Edit(Guid id, AccountEditViewModel model)
     {
         if (id != model.Id)
@@ -139,6 +142,7 @@ public class AccountsController : Controller
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("account-update")]
     public async Task<IActionResult> DeleteConfirmed(Guid id)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
@@ -154,6 +158,7 @@ public class AccountsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("account-update")]
     public async Task<IActionResult> UpdateBalance(Guid accountId, decimal newBalance, string? notes, DateTime? recordedAt)
     {
         // Validate balance range
@@ -233,6 +238,7 @@ public class AccountsController : Controller
     }
 
     [HttpGet]
+    [EnableRateLimiting("export")]
     public async Task<IActionResult> ExportAccountsCsv(AccountCategory? category = null)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
@@ -247,6 +253,7 @@ public class AccountsController : Controller
     }
 
     [HttpGet]
+    [EnableRateLimiting("export")]
     public async Task<IActionResult> ExportAccountHistoryCsv(Guid id)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
