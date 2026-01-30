@@ -7,9 +7,13 @@ using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
 using NetWorthTracker.Infrastructure.Data;
+using NetWorthTracker.Infrastructure.Health;
 using NetWorthTracker.Infrastructure.Identity;
 using NetWorthTracker.Infrastructure.Repositories;
+using NetWorthTracker.Infrastructure.Resilience;
 using NetWorthTracker.Infrastructure.Services;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace NetWorthTracker.Infrastructure;
 
@@ -56,7 +60,56 @@ public static class DependencyInjection
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IAuditService, AuditService>();
 
+        // Encryption service
+        services.AddScoped<IEncryptionService, EncryptionService>();
+
+        // Session management
+        services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+        services.AddScoped<IUserSessionService, UserSessionService>();
+
+        // Email queue and resilience
+        services.Configure<ResilienceSettings>(configuration.GetSection("Resilience"));
+        services.AddScoped<IEmailQueueRepository, EmailQueueRepository>();
+        services.AddScoped<IEmailQueueService, EmailQueueService>();
+
+        // Job tracking for idempotency
+        services.AddScoped<IProcessedJobRepository, ProcessedJobRepository>();
+
+        // Soft delete service
+        services.AddScoped<ISoftDeleteService, SoftDeleteService>();
+
+        // Error alert service
+        services.AddScoped<IErrorAlertService, ErrorAlertService>();
+
+        // Background services
+        services.AddHostedService<EmailProcessingBackgroundService>();
+        services.AddHostedService<DataRetentionBackgroundService>();
+
+        // Health checks
+        services.AddScoped<BackgroundJobHealthCheck>();
+
+        // Configure HttpClient with Polly for SendGrid
+        var resilienceSettings = configuration.GetSection("Resilience").Get<ResilienceSettings>() ?? new ResilienceSettings();
+        services.AddHttpClient("SendGrid")
+            .AddPolicyHandler((provider, _) =>
+            {
+                var logger = provider.GetRequiredService<ILogger<SendGridEmailService>>();
+                return ResiliencePolicies.GetRetryPolicy(resilienceSettings, logger);
+            })
+            .AddPolicyHandler((provider, _) =>
+            {
+                var logger = provider.GetRequiredService<ILogger<SendGridEmailService>>();
+                return ResiliencePolicies.GetCircuitBreakerPolicy(resilienceSettings, logger);
+            });
+
+        // Data migrators
         services.AddScoped<DemoDataSeeder>();
+        services.AddScoped<AccountNumberMigrator>();
+
+        // Database migrations
+        services.Configure<MigrationSettings>(configuration.GetSection("MigrationSettings"));
+        services.AddScoped<IMigrationRunner, MigrationRunner>();
+        services.AddScoped<MigrationHealthCheck>();
 
         return services;
     }
