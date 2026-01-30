@@ -1,0 +1,140 @@
+@model NetWorthTracker.Core.ViewModels.PagedResult<NetWorthTracker.Core.ViewModels.AdminUserViewModel>
+@inject NetWorthTracker.Core.Services.IUserTimeZoneService TimeZone
+@{
+    ViewData["Title"] = "User Management";
+    var search = ViewBag.Search as string;
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Admin</a></li>
+        <li class="breadcrumb-item active">Users</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0" style="border-bottom: none;">User Management</h2>
+    <span class="text-muted">@Model.TotalCount total users</span>
+</div>
+
+<!-- Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by email or name..." value="@search">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">Search</button>
+                @if (!string.IsNullOrEmpty(search))
+                {
+                    <a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Joined</th>
+                        <th>Subscription</th>
+                        <th>Accounts</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@user.DisplayName</strong>
+                                @if (user.IsAdmin)
+                                {
+                                    <span class="badge bg-primary ms-1"><i class="bi bi-shield-check"></i></span>
+                                }
+                                <br>
+                                <small class="text-muted">@user.Email</small>
+                            </td>
+                            <td>@TimeZone.ToUserTime(user.CreatedAt).ToString("MMM d, yyyy")</td>
+                            <td>
+                                @if (user.SubscriptionStatus.HasValue)
+                                {
+                                    var badgeClass = user.SubscriptionStatus.Value switch
+                                    {
+                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Active => "bg-success",
+                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Trialing => "bg-info",
+                                        NetWorthTracker.Core.Entities.SubscriptionStatus.PastDue => "bg-warning",
+                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Canceled => "bg-secondary",
+                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Expired => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    <span class="badge @badgeClass">@user.SubscriptionStatus.Value</span>
+                                    @if (user.IsInTrial == true)
+                                    {
+                                        <br><small class="text-muted">@user.TrialDaysRemaining days left</small>
+                                    }
+                                    else if (user.SubscriptionEndsAt.HasValue)
+                                    {
+                                        <br><small class="text-muted">Ends @user.SubscriptionEndsAt.Value.ToString("MMM d")</small>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">None</span>
+                                }
+                            </td>
+                            <td>@user.AccountCount</td>
+                            <td>
+                                @if (user.EmailConfirmed)
+                                {
+                                    <span class="text-success" title="Email verified"><i class="bi bi-check-circle-fill"></i></span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning" title="Email not verified"><i class="bi bi-exclamation-circle-fill"></i></span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="UserDetails" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-4" aria-label="User list pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link" asp-action="Users" asp-route-page="@(Model.Page - 1)" asp-route-search="@search">Previous</a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Users" asp-route-page="@i" asp-route-search="@search">@i</a>
+                </li>
+            }
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link" asp-action="Users" asp-route-page="@(Model.Page + 1)" asp-route-search="@search">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
