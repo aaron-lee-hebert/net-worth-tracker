@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NetWorthTracker.Application.Interfaces;
 using NetWorthTracker.Core.Entities;
-using NetWorthTracker.Core.Enums;
-using NetWorthTracker.Core.Extensions;
-using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.ViewModels;
 
 namespace NetWorthTracker.Web.Controllers;
@@ -12,60 +10,38 @@ namespace NetWorthTracker.Web.Controllers;
 [Authorize]
 public class DashboardController : Controller
 {
-    private readonly IAccountRepository _accountRepository;
-    private readonly IBalanceHistoryRepository _balanceHistoryRepository;
+    private readonly IDashboardService _dashboardService;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public DashboardController(
-        IAccountRepository accountRepository,
-        IBalanceHistoryRepository balanceHistoryRepository,
+        IDashboardService dashboardService,
         UserManager<ApplicationUser> userManager)
     {
-        _accountRepository = accountRepository;
-        _balanceHistoryRepository = balanceHistoryRepository;
+        _dashboardService = dashboardService;
         _userManager = userManager;
     }
 
     public async Task<IActionResult> Index(bool firstAccount = false)
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
-        var accounts = await _accountRepository.GetActiveAccountsByUserIdAsync(userId);
-
-        var accountList = accounts.ToList();
-        var isFirstTimeUser = accountList.Count == 0;
-
-        var totalsByCategory = accountList
-            .GroupBy(a => a.AccountType.GetCategory())
-            .ToDictionary(g => g.Key, g => g.Sum(a => a.CurrentBalance));
-
-        var totalAssets = accountList
-            .Where(a => a.AccountType.IsAsset())
-            .Sum(a => a.CurrentBalance);
-
-        var totalLiabilities = accountList
-            .Where(a => a.AccountType.IsLiability())
-            .Sum(a => a.CurrentBalance);
+        var summary = await _dashboardService.GetDashboardSummaryAsync(userId);
 
         var viewModel = new DashboardViewModel
         {
-            TotalAssets = totalAssets,
-            TotalLiabilities = totalLiabilities,
-            TotalNetWorth = totalAssets - totalLiabilities,
-            TotalsByCategory = totalsByCategory,
-            RecentAccounts = accountList
-                .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
-                .Take(5)
-                .Select(a => new AccountSummaryViewModel
-                {
-                    Id = a.Id,
-                    Name = a.Name,
-                    AccountType = a.AccountType,
-                    CurrentBalance = a.CurrentBalance,
-                    Institution = a.Institution
-                })
-                .ToList(),
-            IsFirstTimeUser = isFirstTimeUser,
-            ShowFirstAccountSuccess = firstAccount && accountList.Count == 1
+            TotalAssets = summary.TotalAssets,
+            TotalLiabilities = summary.TotalLiabilities,
+            TotalNetWorth = summary.TotalNetWorth,
+            TotalsByCategory = summary.TotalsByCategory,
+            RecentAccounts = summary.RecentAccounts.Select(a => new AccountSummaryViewModel
+            {
+                Id = a.Id,
+                Name = a.Name,
+                AccountType = a.AccountType,
+                CurrentBalance = a.CurrentBalance,
+                Institution = a.Institution
+            }).ToList(),
+            IsFirstTimeUser = !summary.HasAccounts,
+            ShowFirstAccountSuccess = firstAccount && summary.RecentAccounts.Count == 1
         };
 
         return View(viewModel);
@@ -75,34 +51,18 @@ public class DashboardController : Controller
     public async Task<IActionResult> GetAccountsForBulkUpdate()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
-        var accounts = await _accountRepository.GetActiveAccountsByUserIdAsync(userId);
+        var accounts = await _dashboardService.GetAccountsForBulkUpdateAsync(userId);
 
-        var categoryOrder = new Dictionary<AccountCategory, int>
+        var result = accounts.Select(a => new AccountForBulkUpdateViewModel
         {
-            { AccountCategory.Banking, 1 },
-            { AccountCategory.Investment, 2 },
-            { AccountCategory.RealEstate, 3 },
-            { AccountCategory.VehiclesAndProperty, 4 },
-            { AccountCategory.Business, 5 },
-            { AccountCategory.SecuredDebt, 6 },
-            { AccountCategory.UnsecuredDebt, 7 },
-            { AccountCategory.OtherLiabilities, 8 }
-        };
-
-        var result = accounts
-            .OrderBy(a => categoryOrder.GetValueOrDefault(a.AccountType.GetCategory(), 99))
-            .ThenBy(a => a.Name)
-            .Select(a => new AccountForBulkUpdateViewModel
-            {
-                Id = a.Id,
-                Name = a.Name,
-                Institution = a.Institution,
-                CurrentBalance = a.CurrentBalance,
-                Category = a.AccountType.GetCategory().GetDisplayName(),
-                CategoryOrder = categoryOrder.GetValueOrDefault(a.AccountType.GetCategory(), 99),
-                IsLiability = a.AccountType.IsLiability()
-            })
-            .ToList();
+            Id = a.Id,
+            Name = a.Name,
+            Institution = a.Institution,
+            CurrentBalance = a.CurrentBalance,
+            Category = a.Category,
+            CategoryOrder = a.CategoryOrder,
+            IsLiability = a.IsLiability
+        }).ToList();
 
         return Json(result);
     }
@@ -111,6 +71,20 @@ public class DashboardController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BulkUpdateBalances([FromBody] BulkBalanceUpdateViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            return Json(new BulkBalanceUpdateResponse
+            {
+                Success = false,
+                Message = string.Join("; ", errors)
+            });
+        }
+
         if (model?.Accounts == null || model.Accounts.Count == 0)
         {
             return Json(new BulkBalanceUpdateResponse
@@ -121,63 +95,25 @@ public class DashboardController : Controller
         }
 
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
-        var userAccounts = await _accountRepository.GetActiveAccountsByUserIdAsync(userId);
-        var userAccountIds = userAccounts.ToDictionary(a => a.Id);
 
-        // Use UTC timestamp
-        var recordedAt = model.RecordedAt;
-
-        var updatedCount = 0;
-
-        foreach (var item in model.Accounts)
+        var request = new BulkUpdateRequest
         {
-            // Verify account belongs to user
-            if (!userAccountIds.TryGetValue(item.AccountId, out var account))
+            RecordedAt = model.RecordedAt,
+            Notes = model.Notes,
+            Accounts = model.Accounts.Select(a => new AccountBalanceUpdate
             {
-                continue;
-            }
+                AccountId = a.AccountId,
+                NewBalance = a.NewBalance
+            }).ToList()
+        };
 
-            // Skip if balance hasn't changed
-            if (account.CurrentBalance == item.NewBalance)
-            {
-                continue;
-            }
-
-            // Check if a record already exists for this account and date (upsert)
-            var existingRecord = await _balanceHistoryRepository.GetByAccountIdAndDateAsync(item.AccountId, recordedAt);
-
-            if (existingRecord != null)
-            {
-                // Update existing record
-                existingRecord.Balance = item.NewBalance;
-                existingRecord.Notes = model.Notes;
-                await _balanceHistoryRepository.UpdateAsync(existingRecord);
-            }
-            else
-            {
-                // Create new balance history record
-                var balanceHistory = new BalanceHistory
-                {
-                    AccountId = item.AccountId,
-                    Balance = item.NewBalance,
-                    RecordedAt = recordedAt,
-                    Notes = model.Notes
-                };
-
-                await _balanceHistoryRepository.AddAsync(balanceHistory);
-            }
-
-            // Update account current balance
-            await UpdateAccountCurrentBalanceAsync(account);
-
-            updatedCount++;
-        }
+        var result = await _dashboardService.BulkUpdateBalancesAsync(userId, request);
 
         return Json(new BulkBalanceUpdateResponse
         {
-            Success = true,
-            UpdatedCount = updatedCount,
-            Message = $"Successfully updated {updatedCount} account(s)"
+            Success = result.Success,
+            UpdatedCount = result.UpdatedCount,
+            Message = result.Message
         });
     }
 
@@ -185,55 +121,30 @@ public class DashboardController : Controller
     public async Task<IActionResult> GetDashboardSummary()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
-        var accounts = await _accountRepository.GetActiveAccountsByUserIdAsync(userId);
+        var summary = await _dashboardService.GetDashboardSummaryAsync(userId);
 
-        var accountList = accounts.ToList();
+        var totalsByCategory = summary.TotalsByCategory.ToDictionary(
+            kvp => kvp.Key.ToString(),
+            kvp => kvp.Value);
 
-        var totalsByCategory = accountList
-            .GroupBy(a => a.AccountType.GetCategory())
-            .ToDictionary(
-                g => g.Key.GetDisplayName(),
-                g => g.Sum(a => a.CurrentBalance));
-
-        var totalAssets = accountList
-            .Where(a => a.AccountType.IsAsset())
-            .Sum(a => a.CurrentBalance);
-
-        var totalLiabilities = accountList
-            .Where(a => a.AccountType.IsLiability())
-            .Sum(a => a.CurrentBalance);
-
-        var recentAccounts = accountList
-            .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
-            .Take(5)
-            .Select(a => new
-            {
-                id = a.Id,
-                name = a.Name,
-                accountType = a.AccountType.GetDisplayName(),
-                accountTypeCategory = a.AccountType.GetCategory().ToString(),
-                currentBalance = a.CurrentBalance,
-                institution = a.Institution,
-                isLiability = a.AccountType.IsLiability()
-            })
-            .ToList();
+        var recentAccounts = summary.RecentAccounts.Select(a => new
+        {
+            id = a.Id,
+            name = a.Name,
+            accountType = a.AccountType.ToString(),
+            accountTypeCategory = a.AccountType.ToString(),
+            currentBalance = a.CurrentBalance,
+            institution = a.Institution,
+            isLiability = false
+        }).ToList();
 
         return Json(new
         {
-            totalNetWorth = totalAssets - totalLiabilities,
-            totalAssets,
-            totalLiabilities,
+            totalNetWorth = summary.TotalNetWorth,
+            totalAssets = summary.TotalAssets,
+            totalLiabilities = summary.TotalLiabilities,
             totalsByCategory,
             recentAccounts
         });
-    }
-
-    private async Task UpdateAccountCurrentBalanceAsync(Account account)
-    {
-        var allHistory = await _balanceHistoryRepository.GetByAccountIdAsync(account.Id);
-        var latestHistory = allHistory.OrderByDescending(h => h.RecordedAt).FirstOrDefault();
-
-        account.CurrentBalance = latestHistory?.Balance ?? 0;
-        await _accountRepository.UpdateAsync(account);
     }
 }

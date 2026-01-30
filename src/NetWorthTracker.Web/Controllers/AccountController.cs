@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
 using NetWorthTracker.Core.ViewModels;
 
@@ -15,17 +16,20 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IEmailService _emailService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IEmailService emailService,
+        IAuditService auditService,
         ILogger<AccountController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _emailService = emailService;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -62,9 +66,17 @@ public class AccountController : Controller
             model.RememberMe,
             lockoutOnFailure: true);
 
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
         if (result.Succeeded)
         {
             _logger.LogInformation("User {Email} logged in", model.Email);
+
+            // Audit log - successful login
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            await _auditService.LogLoginAttemptAsync(model.Email, success: true, user?.Id, ipAddress, userAgent);
+
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return Redirect(model.ReturnUrl);
@@ -80,9 +92,16 @@ public class AccountController : Controller
         if (result.IsLockedOut)
         {
             _logger.LogWarning("User {Email} account locked out", model.Email);
+
+            // Audit log - account locked out
+            await _auditService.LogLoginAttemptAsync(model.Email, success: false, userId: null, ipAddress, userAgent, "Account locked out");
+
             ModelState.AddModelError(string.Empty, "Account is locked out. Please try again later.");
             return View(model);
         }
+
+        // Audit log - failed login
+        await _auditService.LogLoginAttemptAsync(model.Email, success: false, userId: null, ipAddress, userAgent, "Invalid credentials");
 
         ModelState.AddModelError(string.Empty, "Invalid login attempt.");
         return View(model);
@@ -112,8 +131,22 @@ public class AccountController : Controller
         var authenticatorCode = model.TwoFactorCode.Replace(" ", string.Empty).Replace("-", string.Empty);
         var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, model.RememberMe, model.RememberMachine);
 
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
         if (result.Succeeded)
         {
+            // Audit log - successful 2FA login
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.TwoFactorLoginSuccess,
+                EntityType = AuditEntityType.User,
+                Description = $"2FA login successful for {user.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent
+            });
+
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return Redirect(model.ReturnUrl);
@@ -123,9 +156,35 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
+            // Audit log - 2FA lockout
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.TwoFactorLoginFailed,
+                EntityType = AuditEntityType.User,
+                Description = $"2FA login failed (lockout) for {user.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                Success = false,
+                ErrorMessage = "Account locked out"
+            });
+
             ModelState.AddModelError(string.Empty, "Account is locked out. Please try again later.");
             return View(model);
         }
+
+        // Audit log - failed 2FA
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.TwoFactorLoginFailed,
+            EntityType = AuditEntityType.User,
+            Description = $"2FA login failed for {user.Email}",
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
+            Success = false,
+            ErrorMessage = "Invalid authenticator code"
+        });
 
         ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
         return View(model);
@@ -155,8 +214,22 @@ public class AccountController : Controller
         var recoveryCode = model.RecoveryCode.Replace(" ", string.Empty).Replace("-", string.Empty);
         var result = await _signInManager.TwoFactorRecoveryCodeSignInAsync(recoveryCode);
 
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+
         if (result.Succeeded)
         {
+            // Audit log - recovery code used
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.RecoveryCodeUsed,
+                EntityType = AuditEntityType.User,
+                Description = $"Recovery code used for login by {user.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent
+            });
+
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 return Redirect(model.ReturnUrl);
@@ -166,9 +239,35 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
+            // Audit log - lockout after recovery code attempt
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.TwoFactorLoginFailed,
+                EntityType = AuditEntityType.User,
+                Description = $"Recovery code login failed (lockout) for {user.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+                Success = false,
+                ErrorMessage = "Account locked out"
+            });
+
             ModelState.AddModelError(string.Empty, "Account is locked out. Please try again later.");
             return View(model);
         }
+
+        // Audit log - invalid recovery code
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.TwoFactorLoginFailed,
+            EntityType = AuditEntityType.User,
+            Description = $"Invalid recovery code for {user.Email}",
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
+            Success = false,
+            ErrorMessage = "Invalid recovery code"
+        });
 
         ModelState.AddModelError(string.Empty, "Invalid recovery code.");
         return View(model);
@@ -219,6 +318,20 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             _logger.LogInformation("User {Email} created a new account", model.Email);
+
+            // Audit log - user registered
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.UserRegistered,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = $"New user registered: {model.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent
+            });
 
             // Generate email confirmation token and send verification email
             if (_emailService.IsConfigured)
@@ -284,6 +397,17 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             _logger.LogInformation("User {Email} confirmed their email", user.Email);
+
+            // Audit log - email verified
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.EmailVerified,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = $"Email verified for {user.Email}"
+            });
+
             return View("EmailVerification", new EmailVerificationViewModel
             {
                 Success = true,
@@ -303,6 +427,20 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        var user = await _userManager.GetUserAsync(User);
+
+        // Audit log - logout
+        if (user != null)
+        {
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.Logout,
+                EntityType = AuditEntityType.User,
+                Description = $"User logged out: {user.Email}"
+            });
+        }
+
         await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
@@ -349,6 +487,20 @@ public class AccountController : Controller
         await _emailService.SendPasswordResetAsync(user.Email!, resetLink!);
         _logger.LogInformation("Password reset requested for user {Email}", model.Email);
 
+        // Audit log - password reset requested
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers["User-Agent"].ToString();
+        await _auditService.LogAsync(new AuditLogEntry
+        {
+            UserId = user.Id,
+            Action = AuditAction.PasswordResetRequested,
+            EntityType = AuditEntityType.User,
+            EntityId = user.Id,
+            Description = $"Password reset requested for {model.Email}",
+            IpAddress = ipAddress,
+            UserAgent = userAgent
+        });
+
         return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 
@@ -389,6 +541,21 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             _logger.LogInformation("Password reset successfully for user {Email}", model.Email);
+
+            // Audit log - password reset completed
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+            await _auditService.LogAsync(new AuditLogEntry
+            {
+                UserId = user.Id,
+                Action = AuditAction.PasswordResetCompleted,
+                EntityType = AuditEntityType.User,
+                EntityId = user.Id,
+                Description = $"Password reset completed for {model.Email}",
+                IpAddress = ipAddress,
+                UserAgent = userAgent
+            });
+
             return RedirectToAction(nameof(ResetPasswordConfirmation));
         }
 

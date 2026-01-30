@@ -75,6 +75,14 @@
                                             <i class="bi bi-gear me-2"></i>Settings
                                         </a>
                                     </li>
+                                    @if (User.HasClaim("IsAdmin", "true"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Admin" asp-action="Index">
+                                                <i class="bi bi-shield-lock me-2"></i>Admin
+                                            </a>
+                                        </li>
+                                    }
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post">
