@@ -21,6 +21,8 @@ public class AccountMap : ClassMap<Account>
         Map(x => x.IsActive).Not.Nullable();
         Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
         Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.IsDeleted).Not.Nullable().Default("0");
+        Map(x => x.DeletedAt).CustomType<PostgresNullableTimestampType>();
 
         Map(x => x.UserId).Not.Nullable();
         References(x => x.User)

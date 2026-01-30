@@ -14,7 +14,7 @@ public class ForecastAssumptionsRepository : RepositoryBase<ForecastAssumptions>
     public async Task<ForecastAssumptions?> GetByUserIdAsync(Guid userId)
     {
         return await Session.Query<ForecastAssumptions>()
-            .FirstOrDefaultAsync(a => a.UserId == userId);
+            .FirstOrDefaultAsync(a => a.UserId == userId && !a.IsDeleted);
     }
 
     public async Task<ForecastAssumptions> GetOrCreateAsync(Guid userId)

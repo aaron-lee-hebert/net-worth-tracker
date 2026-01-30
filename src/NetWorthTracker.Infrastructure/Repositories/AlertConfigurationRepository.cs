@@ -14,13 +14,13 @@ public class AlertConfigurationRepository : RepositoryBase<AlertConfiguration>, 
     public async Task<AlertConfiguration?> GetByUserIdAsync(Guid userId)
     {
         return await Session.Query<AlertConfiguration>()
-            .FirstOrDefaultAsync(a => a.UserId == userId);
+            .FirstOrDefaultAsync(a => a.UserId == userId && !a.IsDeleted);
     }
 
     public async Task<IEnumerable<AlertConfiguration>> GetAllEnabledAsync()
     {
         return await Session.Query<AlertConfiguration>()
-            .Where(a => a.AlertsEnabled)
+            .Where(a => a.AlertsEnabled && !a.IsDeleted)
             .ToListAsync();
     }
 }

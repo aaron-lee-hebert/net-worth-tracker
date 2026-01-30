@@ -18,5 +18,7 @@ public class ForecastAssumptionsMap : ClassMap<ForecastAssumptions>
         Map(x => x.VehicleDepreciationRate).Precision(5).Scale(4);
         Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
         Map(x => x.ModifiedAt).CustomType<PostgresTimestampType>().Not.Nullable();
+        Map(x => x.IsDeleted).Not.Nullable().Default("0");
+        Map(x => x.DeletedAt).CustomType<PostgresNullableTimestampType>();
     }
 }

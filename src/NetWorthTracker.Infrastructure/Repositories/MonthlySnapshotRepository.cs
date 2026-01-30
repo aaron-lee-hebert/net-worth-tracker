@@ -15,13 +15,13 @@ public class MonthlySnapshotRepository : RepositoryBase<MonthlySnapshot>, IMonth
     {
         var startOfMonth = new DateTime(month.Year, month.Month, 1);
         return await Session.Query<MonthlySnapshot>()
-            .FirstOrDefaultAsync(s => s.UserId == userId && s.Month == startOfMonth);
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.Month == startOfMonth && !s.IsDeleted);
     }
 
     public async Task<MonthlySnapshot?> GetLatestByUserIdAsync(Guid userId)
     {
         return await Session.Query<MonthlySnapshot>()
-            .Where(s => s.UserId == userId)
+            .Where(s => s.UserId == userId && !s.IsDeleted)
             .OrderByDescending(s => s.Month)
             .FirstOrDefaultAsync();
     }
@@ -29,7 +29,7 @@ public class MonthlySnapshotRepository : RepositoryBase<MonthlySnapshot>, IMonth
     public async Task<IEnumerable<MonthlySnapshot>> GetByUserIdAsync(Guid userId, int limit = 12)
     {
         return await Session.Query<MonthlySnapshot>()
-            .Where(s => s.UserId == userId)
+            .Where(s => s.UserId == userId && !s.IsDeleted)
             .OrderByDescending(s => s.Month)
             .Take(limit)
             .ToListAsync();
@@ -38,7 +38,7 @@ public class MonthlySnapshotRepository : RepositoryBase<MonthlySnapshot>, IMonth
     public async Task<IEnumerable<MonthlySnapshot>> GetUnsentSnapshotsAsync()
     {
         return await Session.Query<MonthlySnapshot>()
-            .Where(s => !s.EmailSent)
+            .Where(s => !s.EmailSent && !s.IsDeleted)
             .ToListAsync();
     }
 }

@@ -16,7 +16,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     public async Task<IEnumerable<Account>> GetByUserIdAsync(Guid userId)
     {
         return await Session.Query<Account>()
-            .Where(a => a.UserId == userId)
+            .Where(a => a.UserId == userId && !a.IsDeleted)
             .OrderBy(a => a.Name)
             .ToListAsync();
     }
@@ -24,7 +24,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     public async Task<IEnumerable<Account>> GetByUserIdAndTypeAsync(Guid userId, AccountType accountType)
     {
         return await Session.Query<Account>()
-            .Where(a => a.UserId == userId && a.AccountType == accountType)
+            .Where(a => a.UserId == userId && a.AccountType == accountType && !a.IsDeleted)
             .OrderBy(a => a.Name)
             .ToListAsync();
     }
@@ -33,7 +33,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     {
         var typesInCategory = AccountTypeExtensions.GetTypesByCategory(category).ToList();
         return await Session.Query<Account>()
-            .Where(a => a.UserId == userId && typesInCategory.Contains(a.AccountType))
+            .Where(a => a.UserId == userId && typesInCategory.Contains(a.AccountType) && !a.IsDeleted)
             .OrderBy(a => a.Name)
             .ToListAsync();
     }
@@ -41,7 +41,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     public async Task<IEnumerable<Account>> GetActiveAccountsByUserIdAsync(Guid userId)
     {
         return await Session.Query<Account>()
-            .Where(a => a.UserId == userId && a.IsActive)
+            .Where(a => a.UserId == userId && a.IsActive && !a.IsDeleted)
             .OrderBy(a => a.Name)
             .ToListAsync();
     }

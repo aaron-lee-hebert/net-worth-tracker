@@ -14,7 +14,7 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
     public async Task<IEnumerable<BalanceHistory>> GetByAccountIdAsync(Guid accountId)
     {
         return await Session.Query<BalanceHistory>()
-            .Where(b => b.AccountId == accountId)
+            .Where(b => b.AccountId == accountId && !b.IsDeleted)
             .OrderByDescending(b => b.RecordedAt)
             .ToListAsync();
     }
@@ -27,7 +27,8 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
         return await Session.Query<BalanceHistory>()
             .Where(b => b.AccountId == accountId &&
                         b.RecordedAt >= startDate &&
-                        b.RecordedAt <= endDate)
+                        b.RecordedAt <= endDate &&
+                        !b.IsDeleted)
             .OrderByDescending(b => b.RecordedAt)
             .ToListAsync();
     }
@@ -35,7 +36,7 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
     public async Task<BalanceHistory?> GetLatestByAccountIdAsync(Guid accountId)
     {
         return await Session.Query<BalanceHistory>()
-            .Where(b => b.AccountId == accountId)
+            .Where(b => b.AccountId == accountId && !b.IsDeleted)
             .OrderByDescending(b => b.RecordedAt)
             .FirstOrDefaultAsync();
     }
@@ -48,7 +49,8 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
         return await Session.Query<BalanceHistory>()
             .Where(b => b.Account!.UserId == userId &&
                         b.RecordedAt >= startDate &&
-                        b.RecordedAt <= endDate)
+                        b.RecordedAt <= endDate &&
+                        !b.IsDeleted)
             .OrderBy(b => b.RecordedAt)
             .ToListAsync();
     }
@@ -62,7 +64,8 @@ public class BalanceHistoryRepository : RepositoryBase<BalanceHistory>, IBalance
         return await Session.Query<BalanceHistory>()
             .Where(b => b.AccountId == accountId &&
                         b.RecordedAt >= startOfDay &&
-                        b.RecordedAt < endOfDay)
+                        b.RecordedAt < endOfDay &&
+                        !b.IsDeleted)
             .FirstOrDefaultAsync();
     }
 }
