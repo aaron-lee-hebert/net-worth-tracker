@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NetWorthTracker.Web.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
+    <ProjectReference Include="..\..\src\NetWorthTracker.Application\NetWorthTracker.Application.csproj" />
+    <ProjectReference Include="..\..\src\NetWorthTracker.Infrastructure\NetWorthTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\NetWorthTracker.Web\NetWorthTracker.Web.csproj" />
+  </ItemGroup>
+
+</Project>
