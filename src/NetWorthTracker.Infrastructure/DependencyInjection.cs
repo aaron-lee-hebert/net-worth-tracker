@@ -31,6 +31,7 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         // Email service (SendGrid)
         services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
@@ -51,6 +52,10 @@ public static class DependencyInjection
         // Forecast assumptions repository
         services.AddScoped<IForecastAssumptionsRepository, ForecastAssumptionsRepository>();
 
+        // Audit logging
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IAuditService, AuditService>();
+
         services.AddScoped<DemoDataSeeder>();
 
         return services;
@@ -60,6 +65,7 @@ public static class DependencyInjection
     {
         builder.Services.AddScoped<IUserStore<ApplicationUser>, ApplicationUserStore>();
         builder.Services.AddScoped<IRoleStore<ApplicationRole>, ApplicationRoleStore>();
+        builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, ApplicationUserClaimsPrincipalFactory>();
         return builder;
     }
 }
