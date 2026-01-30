@@ -11,6 +11,7 @@ namespace NetWorthTracker.Infrastructure.Tests.Services;
 public class SendGridEmailServiceTests
 {
     private Mock<IOptions<SendGridSettings>> _mockOptions = null!;
+    private Mock<IHttpClientFactory> _mockHttpClientFactory = null!;
     private Mock<ILogger<SendGridEmailService>> _mockLogger = null!;
     private SendGridSettings _settings = null!;
 
@@ -20,12 +21,15 @@ public class SendGridEmailServiceTests
         _settings = new SendGridSettings();
         _mockOptions = new Mock<IOptions<SendGridSettings>>();
         _mockOptions.Setup(o => o.Value).Returns(_settings);
+        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        _mockHttpClientFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient());
         _mockLogger = new Mock<ILogger<SendGridEmailService>>();
     }
 
     private SendGridEmailService CreateService()
     {
-        return new SendGridEmailService(_mockOptions.Object, _mockLogger.Object);
+        return new SendGridEmailService(_mockOptions.Object, _mockHttpClientFactory.Object, _mockLogger.Object);
     }
 
     #region IsConfigured Tests
