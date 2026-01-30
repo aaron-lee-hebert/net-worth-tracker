@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,6 +9,7 @@ using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
 using NetWorthTracker.Core.ViewModels;
+using NetWorthTracker.Web.Middleware;
 
 namespace NetWorthTracker.Web.Controllers;
 
@@ -17,6 +19,7 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IEmailService _emailService;
     private readonly IAuditService _auditService;
+    private readonly IUserSessionService _sessionService;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
@@ -24,12 +27,14 @@ public class AccountController : Controller
         SignInManager<ApplicationUser> signInManager,
         IEmailService emailService,
         IAuditService auditService,
+        IUserSessionService sessionService,
         ILogger<AccountController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _emailService = emailService;
         _auditService = auditService;
+        _sessionService = sessionService;
         _logger = logger;
     }
 
@@ -76,6 +81,13 @@ public class AccountController : Controller
             // Audit log - successful login
             var user = await _userManager.FindByEmailAsync(model.Email);
             await _auditService.LogLoginAttemptAsync(model.Email, success: true, user?.Id, ipAddress, userAgent);
+
+            // Create session and add session token to claims
+            if (user != null)
+            {
+                var session = await _sessionService.CreateSessionAsync(user.Id, userAgent, ipAddress);
+                await AddSessionClaimAsync(user, session.SessionToken);
+            }
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
@@ -146,6 +158,10 @@ public class AccountController : Controller
                 IpAddress = ipAddress,
                 UserAgent = userAgent
             });
+
+            // Create session and add session token to claims
+            var session = await _sessionService.CreateSessionAsync(user.Id, userAgent, ipAddress);
+            await AddSessionClaimAsync(user, session.SessionToken);
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
@@ -229,6 +245,10 @@ public class AccountController : Controller
                 IpAddress = ipAddress,
                 UserAgent = userAgent
             });
+
+            // Create session and add session token to claims
+            var session = await _sessionService.CreateSessionAsync(user.Id, userAgent, ipAddress);
+            await AddSessionClaimAsync(user, session.SessionToken);
 
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
@@ -351,6 +371,13 @@ public class AccountController : Controller
             user.EmailConfirmed = true;
             await _userManager.UpdateAsync(user);
             await _signInManager.SignInAsync(user, isPersistent: false);
+
+            // Create session for new user
+            var regIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var regUserAgent = Request.Headers["User-Agent"].ToString();
+            var newSession = await _sessionService.CreateSessionAsync(user.Id, regUserAgent, regIpAddress);
+            await AddSessionClaimAsync(user, newSession.SessionToken);
+
             return RedirectToAction("Index", "Dashboard");
         }
 
@@ -428,6 +455,17 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         var user = await _userManager.GetUserAsync(User);
+
+        // Revoke the current session
+        var sessionToken = User.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
+        if (!string.IsNullOrEmpty(sessionToken))
+        {
+            var session = await _sessionService.ValidateSessionAsync(sessionToken);
+            if (session != null)
+            {
+                await _sessionService.RevokeSessionAsync(session.Id, "User logged out");
+            }
+        }
 
         // Audit log - logout
         if (user != null)
@@ -610,5 +648,16 @@ public class AccountController : Controller
         }
 
         return items;
+    }
+
+    private async Task AddSessionClaimAsync(ApplicationUser user, string sessionToken)
+    {
+        // Sign out and sign back in with the session token claim
+        await _signInManager.SignOutAsync();
+        var claims = new List<Claim>
+        {
+            new Claim(SessionActivityMiddleware.SessionTokenClaimType, sessionToken)
+        };
+        await _signInManager.SignInWithClaimsAsync(user, isPersistent: false, claims);
     }
 }
