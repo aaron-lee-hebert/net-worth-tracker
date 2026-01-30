@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using NetWorthTracker.Core.Constants;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Enums;
 using NetWorthTracker.Core.Extensions;
@@ -14,6 +15,7 @@ public class AlertService : IAlertService
     private readonly IAccountRepository _accountRepository;
     private readonly IBalanceHistoryRepository _balanceHistoryRepository;
     private readonly IEmailService _emailService;
+    private readonly IProcessedJobRepository _processedJobRepository;
     private readonly ILogger<AlertService> _logger;
 
     // Maximum alerts per day to prevent spam
@@ -25,6 +27,7 @@ public class AlertService : IAlertService
         IAccountRepository accountRepository,
         IBalanceHistoryRepository balanceHistoryRepository,
         IEmailService emailService,
+        IProcessedJobRepository processedJobRepository,
         ILogger<AlertService> logger)
     {
         _configRepository = configRepository;
@@ -32,6 +35,7 @@ public class AlertService : IAlertService
         _accountRepository = accountRepository;
         _balanceHistoryRepository = balanceHistoryRepository;
         _emailService = emailService;
+        _processedJobRepository = processedJobRepository;
         _logger = logger;
     }
 
@@ -122,6 +126,15 @@ public class AlertService : IAlertService
 
     public async Task ProcessAlertsAsync()
     {
+        var jobKey = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+        // Idempotency check - ensure we only process alerts once per day
+        if (await _processedJobRepository.ExistsAsync(JobTypes.AlertProcessing, jobKey))
+        {
+            _logger.LogDebug("Alert processing already completed for {Date}, skipping", jobKey);
+            return;
+        }
+
         if (!_emailService.IsConfigured)
         {
             _logger.LogDebug("Email not configured, skipping alert processing");
@@ -130,6 +143,7 @@ public class AlertService : IAlertService
 
         var configs = await _configRepository.GetAllEnabledAsync();
         var alertsSentToday = 0;
+        var errors = new List<string>();
 
         foreach (var config in configs)
         {
@@ -148,8 +162,21 @@ public class AlertService : IAlertService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing alerts for user {UserId}", config.UserId);
+                errors.Add($"User {config.UserId}: {ex.Message}");
             }
         }
+
+        // Record job completion
+        var processedJob = new ProcessedJob
+        {
+            JobType = JobTypes.AlertProcessing,
+            JobKey = jobKey,
+            ProcessedAt = DateTime.UtcNow,
+            Success = errors.Count == 0,
+            ErrorMessage = errors.Count > 0 ? string.Join("; ", errors.Take(5)) : null,
+            Metadata = $"{{\"alertsSent\":{alertsSentToday},\"configsProcessed\":{configs.Count()}}}"
+        };
+        await _processedJobRepository.AddAsync(processedJob);
     }
 
     public async Task SendPendingSnapshotEmailsAsync()
@@ -164,6 +191,22 @@ public class AlertService : IAlertService
 
         foreach (var snapshot in pendingSnapshots)
         {
+            // Idempotency key for individual snapshot emails
+            var jobKey = $"{snapshot.UserId}:{snapshot.Month:yyyy-MM}";
+
+            // Check if we already processed this snapshot email
+            if (await _processedJobRepository.ExistsAsync(JobTypes.SnapshotEmail, jobKey))
+            {
+                // Mark as sent if job was already processed successfully
+                var existingJob = await _processedJobRepository.GetByKeyAsync(JobTypes.SnapshotEmail, jobKey);
+                if (existingJob?.Success == true && !snapshot.EmailSent)
+                {
+                    snapshot.EmailSent = true;
+                    await _snapshotRepository.UpdateAsync(snapshot);
+                }
+                continue;
+            }
+
             try
             {
                 // Check if user has snapshots enabled
@@ -173,6 +216,16 @@ public class AlertService : IAlertService
                     // Mark as sent to not try again
                     snapshot.EmailSent = true;
                     await _snapshotRepository.UpdateAsync(snapshot);
+
+                    // Record skipped job
+                    await _processedJobRepository.AddAsync(new ProcessedJob
+                    {
+                        JobType = JobTypes.SnapshotEmail,
+                        JobKey = jobKey,
+                        ProcessedAt = DateTime.UtcNow,
+                        Success = true,
+                        Metadata = "{\"skipped\":true,\"reason\":\"SnapshotsDisabled\"}"
+                    });
                     continue;
                 }
 
@@ -182,12 +235,31 @@ public class AlertService : IAlertService
                 snapshot.EmailSentAt = DateTime.UtcNow;
                 await _snapshotRepository.UpdateAsync(snapshot);
 
+                // Record successful job
+                await _processedJobRepository.AddAsync(new ProcessedJob
+                {
+                    JobType = JobTypes.SnapshotEmail,
+                    JobKey = jobKey,
+                    ProcessedAt = DateTime.UtcNow,
+                    Success = true
+                });
+
                 _logger.LogInformation("Sent monthly snapshot email to user {UserId} for {Month}",
                     snapshot.UserId, snapshot.Month.ToString("yyyy-MM"));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending snapshot email for user {UserId}", snapshot.UserId);
+
+                // Record failed job
+                await _processedJobRepository.AddAsync(new ProcessedJob
+                {
+                    JobType = JobTypes.SnapshotEmail,
+                    JobKey = jobKey,
+                    ProcessedAt = DateTime.UtcNow,
+                    Success = false,
+                    ErrorMessage = ex.Message
+                });
             }
         }
     }
