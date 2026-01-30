@@ -25,6 +25,8 @@ public class MonthlySnapshotMap : ClassMap<MonthlySnapshot>
         Map(x => x.EmailSentAt).CustomType<PostgresNullableTimestampType>();
         Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
         Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.IsDeleted).Not.Nullable().Default("0");
+        Map(x => x.DeletedAt).CustomType<PostgresNullableTimestampType>();
 
         References(x => x.User)
             .Not.Insert()
