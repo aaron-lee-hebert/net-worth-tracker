@@ -4,11 +4,12 @@ namespace NetWorthTracker.Core.ViewModels;
 
 public class LoginViewModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Password is required")]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
@@ -20,25 +21,27 @@ public class LoginViewModel
 
 public class RegisterViewModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
+    [Required(ErrorMessage = "First name is required")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "First name must be 1-100 characters")]
     [Display(Name = "First Name")]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 2)]
+    [Required(ErrorMessage = "Last name is required")]
+    [StringLength(100, MinimumLength = 1, ErrorMessage = "Last name must be 1-100 characters")]
     [Display(Name = "Last Name")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 8)]
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be 8-100 characters")]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Please confirm your password")]
     [DataType(DataType.Password)]
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
@@ -79,28 +82,32 @@ public class LoginWithRecoveryCodeViewModel
 
 public class ForgotPasswordViewModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 }
 
 public class ResetPasswordViewModel
 {
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email address")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100, MinimumLength = 8)]
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be 8-100 characters")]
     [DataType(DataType.Password)]
     [Display(Name = "New Password")]
     public string Password { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Please confirm your password")]
     [DataType(DataType.Password)]
     [Display(Name = "Confirm Password")]
     [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
+    [Required]
     public string Token { get; set; } = string.Empty;
 }
 
