@@ -5,6 +5,7 @@ WORKDIR /src
 # Copy solution and project files
 COPY Directory.Build.props Directory.Packages.props ./
 COPY src/NetWorthTracker.Core/NetWorthTracker.Core.csproj src/NetWorthTracker.Core/
+COPY src/NetWorthTracker.Application/NetWorthTracker.Application.csproj src/NetWorthTracker.Application/
 COPY src/NetWorthTracker.Infrastructure/NetWorthTracker.Infrastructure.csproj src/NetWorthTracker.Infrastructure/
 COPY src/NetWorthTracker.Web/NetWorthTracker.Web.csproj src/NetWorthTracker.Web/
 
