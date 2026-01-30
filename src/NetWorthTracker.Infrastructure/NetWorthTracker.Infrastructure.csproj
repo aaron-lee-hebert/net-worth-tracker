@@ -16,10 +16,14 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Stripe.net" />
     <PackageReference Include="SendGrid" />
+    <!-- Security: Override vulnerable transitive dependencies -->
+    <PackageReference Include="System.Net.Http" />
+    <PackageReference Include="System.Text.RegularExpressions" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
+    <ProjectReference Include="..\NetWorthTracker.Application\NetWorthTracker.Application.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
+    <ProjectReference Include="..\NetWorthTracker.Application\NetWorthTracker.Application.csproj" />
     <ProjectReference Include="..\NetWorthTracker.Infrastructure\NetWorthTracker.Infrastructure.csproj" />
   </ItemGroup>
 
