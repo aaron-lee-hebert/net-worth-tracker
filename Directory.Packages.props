@@ -32,7 +32,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
 
     <!-- Stripe -->
-    <PackageVersion Include="Stripe.net" Version="47.4.0" />
+    <PackageVersion Include="Stripe.net" Version="50.3.0" />
 
     <!-- SendGrid -->
     <PackageVersion Include="SendGrid" Version="9.29.3" />
