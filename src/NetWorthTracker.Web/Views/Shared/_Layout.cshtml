@@ -1,9 +1,7 @@
 @using Microsoft.AspNetCore.Identity
 @using NetWorthTracker.Core.Entities
-@using NetWorthTracker.Core.Services
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
-@inject IStripeService StripeService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -48,14 +46,6 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Forecasts" asp-action="Index">
                                     <i class="bi bi-graph-up-arrow me-1"></i>Forecasts
-                                </a>
-                            </li>
-                        }
-                        else if (StripeService.IsConfigured)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Home" asp-action="Pricing">
-                                    <i class="bi bi-tag me-1"></i>Pricing
                                 </a>
                             </li>
                         }

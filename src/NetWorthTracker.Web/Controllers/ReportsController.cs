@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Application.Interfaces;
 using NetWorthTracker.Core.Entities;
 
@@ -33,8 +32,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    [EnableRateLimiting("export")]
-    public async Task<IActionResult> DownloadCsv()
+        public async Task<IActionResult> DownloadCsv()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
         var result = await _exportService.ExportQuarterlyReportCsvAsync(userId);
@@ -48,8 +46,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    [EnableRateLimiting("export")]
-    public async Task<IActionResult> DownloadNetWorthHistoryCsv()
+        public async Task<IActionResult> DownloadNetWorthHistoryCsv()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
         var result = await _exportService.ExportNetWorthHistoryCsvAsync(userId);

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using NUnit.Framework;
@@ -21,7 +20,6 @@ public class AdminControllerTests
     private Mock<IAdminService> _mockAdminService = null!;
     private Mock<UserManager<ApplicationUser>> _mockUserManager = null!;
     private Mock<HealthCheckService> _mockHealthCheckService = null!;
-    private Mock<IConfiguration> _mockConfiguration = null!;
     private AdminController _controller = null!;
     private Guid _testAdminUserId;
 
@@ -39,13 +37,11 @@ public class AdminControllerTests
             .Returns(_testAdminUserId.ToString());
 
         _mockHealthCheckService = new Mock<HealthCheckService>();
-        _mockConfiguration = new Mock<IConfiguration>();
 
         _controller = new AdminController(
             _mockAdminService.Object,
             _mockUserManager.Object,
-            _mockHealthCheckService.Object,
-            _mockConfiguration.Object);
+            _mockHealthCheckService.Object);
 
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
@@ -72,9 +68,8 @@ public class AdminControllerTests
         var dashboard = new AdminDashboardViewModel
         {
             TotalUsers = 100,
-            ActiveSubscriptions = 50,
-            TrialUsers = 20,
-            MonthlyChurnRate = 5m
+            NewUsersThisMonth = 10,
+            NewUsersLastMonth = 8
         };
 
         _mockAdminService.Setup(s => s.GetDashboardMetricsAsync())
@@ -88,7 +83,7 @@ public class AdminControllerTests
         var model = result!.Model as AdminDashboardViewModel;
         model.Should().NotBeNull();
         model!.TotalUsers.Should().Be(100);
-        model.ActiveSubscriptions.Should().Be(50);
+        model.NewUsersThisMonth.Should().Be(10);
     }
 
     #endregion
@@ -420,117 +415,6 @@ public class AdminControllerTests
         // Assert
         _mockAdminService.Verify(s => s.ExportAuditLogsCsvAsync(It.Is<AuditLogFilter>(f =>
             f.Action == "Login")), Times.Once);
-    }
-
-    #endregion
-
-    #region Subscriptions Tests
-
-    [Test]
-    public async Task Subscriptions_ReturnsViewWithPagedSubscriptions()
-    {
-        // Arrange
-        var pagedResult = new PagedResult<AdminSubscriptionViewModel>
-        {
-            Items = new List<AdminSubscriptionViewModel>
-            {
-                new AdminSubscriptionViewModel { Id = Guid.NewGuid(), UserEmail = "user@test.com", Status = SubscriptionStatus.Active }
-            },
-            TotalCount = 1,
-            Page = 1,
-            PageSize = 20
-        };
-
-        _mockAdminService.Setup(s => s.GetSubscriptionsAsync(1, 20, null))
-            .ReturnsAsync(pagedResult);
-
-        // Act
-        var result = await _controller.Subscriptions() as ViewResult;
-
-        // Assert
-        result.Should().NotBeNull();
-        var model = result!.Model as PagedResult<AdminSubscriptionViewModel>;
-        model.Should().NotBeNull();
-        model!.Items.Should().HaveCount(1);
-    }
-
-    [Test]
-    public async Task Subscriptions_WithStatusFilter_PassesStatusToService()
-    {
-        // Arrange
-        var pagedResult = new PagedResult<AdminSubscriptionViewModel>
-        {
-            Items = new List<AdminSubscriptionViewModel>(),
-            TotalCount = 0,
-            Page = 1,
-            PageSize = 20
-        };
-
-        _mockAdminService.Setup(s => s.GetSubscriptionsAsync(1, 20, SubscriptionStatus.Trialing))
-            .ReturnsAsync(pagedResult);
-
-        // Act
-        var result = await _controller.Subscriptions(1, SubscriptionStatus.Trialing) as ViewResult;
-
-        // Assert
-        _mockAdminService.Verify(s => s.GetSubscriptionsAsync(1, 20, SubscriptionStatus.Trialing), Times.Once);
-        result!.ViewData["StatusFilter"].Should().Be(SubscriptionStatus.Trialing);
-    }
-
-    [Test]
-    public async Task Subscriptions_WithPage_PassesPageToService()
-    {
-        // Arrange
-        var pagedResult = new PagedResult<AdminSubscriptionViewModel>
-        {
-            Items = new List<AdminSubscriptionViewModel>(),
-            TotalCount = 50,
-            Page = 3,
-            PageSize = 20
-        };
-
-        _mockAdminService.Setup(s => s.GetSubscriptionsAsync(3, 20, null))
-            .ReturnsAsync(pagedResult);
-
-        // Act
-        await _controller.Subscriptions(3);
-
-        // Assert
-        _mockAdminService.Verify(s => s.GetSubscriptionsAsync(3, 20, null), Times.Once);
-    }
-
-    #endregion
-
-    #region Analytics Tests
-
-    [Test]
-    public async Task Analytics_ReturnsViewWithAnalytics()
-    {
-        // Arrange
-        var analytics = new SubscriptionAnalyticsViewModel
-        {
-            TotalSubscriptions = 100,
-            TotalActive = 60,
-            TotalTrialing = 20,
-            TotalExpired = 10,
-            TotalCanceled = 10,
-            TrialConversionRate = 85.7m,
-            MonthlyChurnRate = 5.5m,
-            StatusBreakdown = new List<SubscriptionStatusBreakdown>()
-        };
-
-        _mockAdminService.Setup(s => s.GetSubscriptionAnalyticsAsync())
-            .ReturnsAsync(analytics);
-
-        // Act
-        var result = await _controller.Analytics() as ViewResult;
-
-        // Assert
-        result.Should().NotBeNull();
-        var model = result!.Model as SubscriptionAnalyticsViewModel;
-        model.Should().NotBeNull();
-        model!.TotalSubscriptions.Should().Be(100);
-        model.TrialConversionRate.Should().Be(85.7m);
     }
 
     #endregion

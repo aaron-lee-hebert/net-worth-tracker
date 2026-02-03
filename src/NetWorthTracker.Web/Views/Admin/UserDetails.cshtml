@@ -108,87 +108,31 @@
         </div>
     </div>
 
-    <!-- Subscription Info -->
+    <!-- Account Summary -->
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Subscription</h5>
+                <h5 class="mb-0">Account Summary</h5>
             </div>
             <div class="card-body">
-                @if (Model.SubscriptionStatus.HasValue)
-                {
-                    var badgeClass = Model.SubscriptionStatus.Value switch
-                    {
-                        NetWorthTracker.Core.Entities.SubscriptionStatus.Active => "bg-success",
-                        NetWorthTracker.Core.Entities.SubscriptionStatus.Trialing => "bg-info",
-                        NetWorthTracker.Core.Entities.SubscriptionStatus.PastDue => "bg-warning",
-                        NetWorthTracker.Core.Entities.SubscriptionStatus.Canceled => "bg-secondary",
-                        NetWorthTracker.Core.Entities.SubscriptionStatus.Expired => "bg-danger",
-                        _ => "bg-secondary"
-                    };
-
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">Status</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge @badgeClass fs-6">@Model.SubscriptionStatus.Value</span>
-                        </dd>
-
-                        @if (Model.IsInTrial == true)
-                        {
-                            <dt class="col-sm-4">Trial Started</dt>
-                            <dd class="col-sm-8">@(Model.TrialStartedAt.HasValue ? TimeZone.ToUserTime(Model.TrialStartedAt.Value).ToString("MMM d, yyyy") : "-")</dd>
-
-                            <dt class="col-sm-4">Trial Ends</dt>
-                            <dd class="col-sm-8">
-                                @(Model.TrialEndsAt.HasValue ? TimeZone.ToUserTime(Model.TrialEndsAt.Value).ToString("MMM d, yyyy") : "-")
-                                <span class="badge bg-info ms-1">@Model.TrialDaysRemaining days left</span>
-                            </dd>
-                        }
-
-                        @if (Model.CurrentPeriodEnd.HasValue)
-                        {
-                            <dt class="col-sm-4">Period Ends</dt>
-                            <dd class="col-sm-8">@TimeZone.ToUserTime(Model.CurrentPeriodEnd.Value).ToString("MMM d, yyyy")</dd>
-                        }
-
-                        @if (!string.IsNullOrEmpty(Model.StripeCustomerId))
-                        {
-                            <dt class="col-sm-4">Stripe Customer</dt>
-                            <dd class="col-sm-8"><code>@Model.StripeCustomerId</code></dd>
-                        }
-                    </dl>
-                }
-                else
-                {
-                    <p class="text-muted mb-0">No subscription found for this user.</p>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Account Summary -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Account Summary</h5>
-    </div>
-    <div class="card-body">
-        <div class="row text-center">
-            <div class="col-md-3">
-                <h4 class="text-primary">@Model.AccountCount</h4>
-                <p class="text-muted mb-0">Accounts</p>
-            </div>
-            <div class="col-md-3">
-                <h4 class="text-success">@Model.TotalAssets.ToString("C")</h4>
-                <p class="text-muted mb-0">Total Assets</p>
-            </div>
-            <div class="col-md-3">
-                <h4 class="text-danger">@Model.TotalLiabilities.ToString("C")</h4>
-                <p class="text-muted mb-0">Total Liabilities</p>
-            </div>
-            <div class="col-md-3">
-                <h4 class="@(Model.NetWorth >= 0 ? "text-success" : "text-danger")">@Model.NetWorth.ToString("C")</h4>
-                <p class="text-muted mb-0">Net Worth</p>
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <h4 class="text-primary">@Model.AccountCount</h4>
+                        <p class="text-muted mb-0">Accounts</p>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <h4 class="@(Model.NetWorth >= 0 ? "text-success" : "text-danger")">@Model.NetWorth.ToString("C")</h4>
+                        <p class="text-muted mb-0">Net Worth</p>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">@Model.TotalAssets.ToString("C")</h4>
+                        <p class="text-muted mb-0">Total Assets</p>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-danger">@Model.TotalLiabilities.ToString("C")</h4>
+                        <p class="text-muted mb-0">Total Liabilities</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

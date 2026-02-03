@@ -1,7 +1,7 @@
 -- Migration: 001_baseline
--- Description: Initial schema baseline - all existing tables as of Wave 3 completion
+-- Description: Initial schema baseline for self-hosted version
 -- Author: System
--- Date: 2025-01-30
+-- Date: 2026-02-02
 -- Note: This migration creates all tables if they don't exist (idempotent)
 
 -- ============================================
@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS Users (
     Locale TEXT NOT NULL DEFAULT 'en-US',
     TimeZone TEXT NOT NULL DEFAULT 'America/New_York',
     IsAdmin INTEGER NOT NULL DEFAULT 0,
-    StripeCustomerId TEXT,
     CreatedAt TEXT NOT NULL,
     UpdatedAt TEXT
 );
@@ -115,23 +114,6 @@ CREATE TABLE IF NOT EXISTS BalanceHistory (
 CREATE INDEX IF NOT EXISTS IX_BalanceHistory_AccountId ON BalanceHistory(AccountId);
 CREATE INDEX IF NOT EXISTS IX_BalanceHistory_RecordedAt ON BalanceHistory(RecordedAt);
 
-CREATE TABLE IF NOT EXISTS Subscriptions (
-    Id TEXT PRIMARY KEY,
-    UserId TEXT NOT NULL,
-    StripeSubscriptionId TEXT,
-    StripePriceId TEXT,
-    Status TEXT NOT NULL DEFAULT 'none',
-    CurrentPeriodStart TEXT,
-    CurrentPeriodEnd TEXT,
-    CancelAtPeriodEnd INTEGER NOT NULL DEFAULT 0,
-    CreatedAt TEXT NOT NULL,
-    UpdatedAt TEXT,
-    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS IX_Subscriptions_UserId ON Subscriptions(UserId);
-CREATE INDEX IF NOT EXISTS IX_Subscriptions_StripeSubscriptionId ON Subscriptions(StripeSubscriptionId);
-
 CREATE TABLE IF NOT EXISTS AlertConfigurations (
     Id TEXT PRIMARY KEY,
     UserId TEXT NOT NULL,
@@ -213,25 +195,6 @@ CREATE INDEX IF NOT EXISTS IX_AuditLogs_UserId ON AuditLogs(UserId);
 CREATE INDEX IF NOT EXISTS IX_AuditLogs_EntityType_EntityId ON AuditLogs(EntityType, EntityId);
 CREATE INDEX IF NOT EXISTS IX_AuditLogs_Timestamp ON AuditLogs(Timestamp);
 
-CREATE TABLE IF NOT EXISTS UserSessions (
-    Id TEXT PRIMARY KEY,
-    UserId TEXT NOT NULL,
-    SessionToken TEXT NOT NULL,
-    UserAgent TEXT,
-    IpAddress TEXT,
-    DeviceName TEXT,
-    LastActivityAt TEXT NOT NULL,
-    ExpiresAt TEXT NOT NULL,
-    IsRevoked INTEGER NOT NULL DEFAULT 0,
-    RevocationReason TEXT,
-    CreatedAt TEXT NOT NULL,
-    UpdatedAt TEXT,
-    FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS IX_UserSessions_UserId ON UserSessions(UserId);
-CREATE INDEX IF NOT EXISTS IX_UserSessions_SessionToken ON UserSessions(SessionToken);
-
 -- ============================================
 -- Background Job Tables
 -- ============================================
@@ -278,12 +241,10 @@ CREATE INDEX IF NOT EXISTS IX_ProcessedJobs_ProcessedAt ON ProcessedJobs(Process
 
 DROP TABLE IF EXISTS ProcessedJobs;
 DROP TABLE IF EXISTS EmailQueue;
-DROP TABLE IF EXISTS UserSessions;
 DROP TABLE IF EXISTS AuditLogs;
 DROP TABLE IF EXISTS ForecastAssumptions;
 DROP TABLE IF EXISTS MonthlySnapshots;
 DROP TABLE IF EXISTS AlertConfigurations;
-DROP TABLE IF EXISTS Subscriptions;
 DROP TABLE IF EXISTS BalanceHistory;
 DROP TABLE IF EXISTS Accounts;
 DROP TABLE IF EXISTS UserTokens;

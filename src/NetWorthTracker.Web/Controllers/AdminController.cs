@@ -16,18 +16,15 @@ public class AdminController : Controller
     private readonly IAdminService _adminService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly HealthCheckService _healthCheckService;
-    private readonly IConfiguration _configuration;
 
     public AdminController(
         IAdminService adminService,
         UserManager<ApplicationUser> userManager,
-        HealthCheckService healthCheckService,
-        IConfiguration configuration)
+        HealthCheckService healthCheckService)
     {
         _adminService = adminService;
         _userManager = userManager;
         _healthCheckService = healthCheckService;
-        _configuration = configuration;
     }
 
     // GET: /Admin
@@ -128,21 +125,6 @@ public class AdminController : Controller
         return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
     }
 
-    // GET: /Admin/Subscriptions
-    public async Task<IActionResult> Subscriptions(int page = 1, SubscriptionStatus? status = null)
-    {
-        var result = await _adminService.GetSubscriptionsAsync(page, 20, status);
-        ViewBag.StatusFilter = status;
-        return View(result);
-    }
-
-    // GET: /Admin/Analytics
-    public async Task<IActionResult> Analytics()
-    {
-        var analytics = await _adminService.GetSubscriptionAnalyticsAsync();
-        return View(analytics);
-    }
-
     // GET: /Admin/Health
     public async Task<IActionResult> Health()
     {
@@ -152,7 +134,6 @@ public class AdminController : Controller
         {
             OverallStatus = report.Status.ToString(),
             CheckedAt = DateTime.UtcNow,
-            SeqServerUrl = _configuration["Seq:ServerUrl"],
             Checks = report.Entries.Select(entry => new HealthCheckViewModel
             {
                 Name = entry.Key,

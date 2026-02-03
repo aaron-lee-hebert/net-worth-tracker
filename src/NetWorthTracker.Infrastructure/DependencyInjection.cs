@@ -12,8 +12,6 @@ using NetWorthTracker.Infrastructure.Identity;
 using NetWorthTracker.Infrastructure.Repositories;
 using NetWorthTracker.Infrastructure.Resilience;
 using NetWorthTracker.Infrastructure.Services;
-using Polly;
-using Polly.Extensions.Http;
 
 namespace NetWorthTracker.Infrastructure;
 
@@ -37,16 +35,9 @@ public static class DependencyInjection
         services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
 
-        // Email service (SendGrid)
-        services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
-        services.AddScoped<IEmailService, SendGridEmailService>();
-
-        // Stripe service
-        services.Configure<StripeSettings>(configuration.GetSection("Stripe"));
-        services.AddScoped<IStripeService, StripeService>();
-
-        // Subscription repository
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        // Email service (SMTP)
+        services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
+        services.AddScoped<IEmailService, SmtpEmailService>();
 
         // Alert repositories and service
         services.AddScoped<IAlertConfigurationRepository, AlertConfigurationRepository>();
@@ -62,10 +53,6 @@ public static class DependencyInjection
 
         // Encryption service
         services.AddScoped<IEncryptionService, EncryptionService>();
-
-        // Session management
-        services.AddScoped<IUserSessionRepository, UserSessionRepository>();
-        services.AddScoped<IUserSessionService, UserSessionService>();
 
         // Email queue and resilience
         services.Configure<ResilienceSettings>(configuration.GetSection("Resilience"));
@@ -88,19 +75,8 @@ public static class DependencyInjection
         // Health checks
         services.AddScoped<BackgroundJobHealthCheck>();
 
-        // Configure HttpClient with Polly for SendGrid
-        var resilienceSettings = configuration.GetSection("Resilience").Get<ResilienceSettings>() ?? new ResilienceSettings();
-        services.AddHttpClient("SendGrid")
-            .AddPolicyHandler((provider, _) =>
-            {
-                var logger = provider.GetRequiredService<ILogger<SendGridEmailService>>();
-                return ResiliencePolicies.GetRetryPolicy(resilienceSettings, logger);
-            })
-            .AddPolicyHandler((provider, _) =>
-            {
-                var logger = provider.GetRequiredService<ILogger<SendGridEmailService>>();
-                return ResiliencePolicies.GetCircuitBreakerPolicy(resilienceSettings, logger);
-            });
+        // Audit logging settings
+        services.Configure<AuditSettings>(configuration.GetSection("AuditLogging"));
 
         // Data migrators
         services.AddScoped<DemoDataSeeder>();

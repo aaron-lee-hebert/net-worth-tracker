@@ -16,8 +16,4 @@ public interface IAdminService
     // Audit logs
     Task<PagedResult<AuditLogViewModel>> GetAuditLogsAsync(int page, int pageSize, AuditLogFilter? filter = null);
     Task<string> ExportAuditLogsCsvAsync(AuditLogFilter? filter = null);
-
-    // Subscription analytics
-    Task<SubscriptionAnalyticsViewModel> GetSubscriptionAnalyticsAsync();
-    Task<PagedResult<AdminSubscriptionViewModel>> GetSubscriptionsAsync(int page, int pageSize, SubscriptionStatus? status = null);
 }

@@ -47,9 +47,8 @@
                     <tr>
                         <th>User</th>
                         <th>Joined</th>
-                        <th>Subscription</th>
                         <th>Accounts</th>
-                        <th>Status</th>
+                        <th>Email Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -67,42 +66,15 @@
                                 <small class="text-muted">@user.Email</small>
                             </td>
                             <td>@TimeZone.ToUserTime(user.CreatedAt).ToString("MMM d, yyyy")</td>
-                            <td>
-                                @if (user.SubscriptionStatus.HasValue)
-                                {
-                                    var badgeClass = user.SubscriptionStatus.Value switch
-                                    {
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Active => "bg-success",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Trialing => "bg-info",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.PastDue => "bg-warning",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Canceled => "bg-secondary",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Expired => "bg-danger",
-                                        _ => "bg-secondary"
-                                    };
-                                    <span class="badge @badgeClass">@user.SubscriptionStatus.Value</span>
-                                    @if (user.IsInTrial == true)
-                                    {
-                                        <br><small class="text-muted">@user.TrialDaysRemaining days left</small>
-                                    }
-                                    else if (user.SubscriptionEndsAt.HasValue)
-                                    {
-                                        <br><small class="text-muted">Ends @user.SubscriptionEndsAt.Value.ToString("MMM d")</small>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">None</span>
-                                }
-                            </td>
                             <td>@user.AccountCount</td>
                             <td>
                                 @if (user.EmailConfirmed)
                                 {
-                                    <span class="text-success" title="Email verified"><i class="bi bi-check-circle-fill"></i></span>
+                                    <span class="text-success" title="Email verified"><i class="bi bi-check-circle-fill"></i> Verified</span>
                                 }
                                 else
                                 {
-                                    <span class="text-warning" title="Email not verified"><i class="bi bi-exclamation-circle-fill"></i></span>
+                                    <span class="text-warning" title="Email not verified"><i class="bi bi-exclamation-circle-fill"></i> Pending</span>
                                 }
                             </td>
                             <td class="text-end">
