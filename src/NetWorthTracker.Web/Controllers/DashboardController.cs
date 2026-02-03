@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Application.Interfaces;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.ViewModels;
@@ -70,7 +69,6 @@ public class DashboardController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("bulk-update")]
     public async Task<IActionResult> BulkUpdateBalances([FromBody] BulkBalanceUpdateViewModel model)
     {
         if (!ModelState.IsValid)

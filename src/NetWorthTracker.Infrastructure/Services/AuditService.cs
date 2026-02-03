@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 
@@ -10,6 +11,7 @@ public class AuditService : IAuditService
 {
     private readonly IAuditLogRepository _repository;
     private readonly ILogger<AuditService> _logger;
+    private readonly AuditSettings _settings;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -19,14 +21,20 @@ public class AuditService : IAuditService
         ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
-    public AuditService(IAuditLogRepository repository, ILogger<AuditService> logger)
+    public AuditService(IAuditLogRepository repository, ILogger<AuditService> logger, IOptions<AuditSettings> settings)
     {
         _repository = repository;
         _logger = logger;
+        _settings = settings.Value;
     }
 
     public async Task LogAsync(AuditLogEntry entry)
     {
+        if (!_settings.Enabled)
+        {
+            return;
+        }
+
         try
         {
             var auditLog = new AuditLog

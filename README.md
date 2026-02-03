@@ -162,6 +162,15 @@ Password requirements:
 | `DatabaseProvider`                     | Database type (`SQLite` or `PostgreSQL`)     | `SQLite`                            |
 | `ConnectionStrings__DefaultConnection` | Database connection string                   | `Data Source=/app/data/networth.db` |
 | `SeedDemoData`                         | Seed database with demonstration data        | `false`                             |
+| `Smtp__Enabled`                        | Enable email notifications                   | `false`                             |
+| `Smtp__Host`                           | SMTP server hostname                         | (none)                              |
+| `Smtp__Port`                           | SMTP server port                             | `587`                               |
+| `Smtp__UseSsl`                         | Use SSL/TLS for SMTP connection              | `true`                              |
+| `Smtp__Username`                       | SMTP authentication username                 | (none)                              |
+| `Smtp__Password`                       | SMTP authentication password                 | (none)                              |
+| `Smtp__FromEmail`                      | Email address for outgoing messages          | (none)                              |
+| `Smtp__FromName`                       | Display name for outgoing messages           | `Net Worth Tracker`                 |
+| `AuditLogging__Enabled`                | Enable audit logging for security events     | `false`                             |
 
 ### Demonstration Mode
 
@@ -225,6 +234,45 @@ volumes:
 ```
 
 PostgreSQL uses snake_case naming conventions for tables and columns (e.g., `balance_histories`, `created_at`).
+
+### Email Notifications (Optional)
+
+To enable email notifications (password resets, monthly snapshots, alerts), configure SMTP settings:
+
+```yaml
+services:
+  web:
+    image: ghcr.io/aaron-lee-hebert/net-worth-tracker:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - networth-data:/app/data
+    environment:
+      - Smtp__Enabled=true
+      - Smtp__Host=smtp.example.com
+      - Smtp__Port=587
+      - Smtp__UseSsl=true
+      - Smtp__Username=your-username
+      - Smtp__Password=your-password
+      - Smtp__FromEmail=noreply@example.com
+      - Smtp__FromName=Net Worth Tracker
+
+volumes:
+  networth-data:
+```
+
+The application functions fully without email configuration. When SMTP is not configured, email-dependent features (password reset emails, notification alerts) are gracefully disabled.
+
+### Audit Logging (Optional)
+
+For enhanced security monitoring, enable audit logging to track user authentication events and sensitive operations:
+
+```yaml
+environment:
+  - AuditLogging__Enabled=true
+```
+
+Audit logs are stored in the database and include login attempts, password changes, MFA events, and data exports. This feature is disabled by default for simplicity.
 
 ## Financial Projections
 

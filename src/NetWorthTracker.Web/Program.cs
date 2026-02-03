@@ -1,11 +1,6 @@
-using System.Security.Claims;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Application;
@@ -28,19 +23,10 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Configure Serilog from appsettings.json with optional Seq sink for SaaS
+    // Configure Serilog from appsettings.json
     builder.Host.UseSerilog((context, services, configuration) =>
     {
         configuration.ReadFrom.Configuration(context.Configuration);
-
-        // Add Seq sink if configured (for SaaS/hosted version)
-        var seqServerUrl = context.Configuration["Seq:ServerUrl"];
-        if (!string.IsNullOrEmpty(seqServerUrl))
-        {
-            var seqApiKey = context.Configuration["Seq:ApiKey"];
-            configuration.WriteTo.Seq(seqServerUrl, apiKey: string.IsNullOrEmpty(seqApiKey) ? null : seqApiKey);
-            Log.Information("Seq logging enabled: {SeqServerUrl}", seqServerUrl);
-        }
     });
 
     // Add Infrastructure services (NHibernate, Repositories)
@@ -85,37 +71,12 @@ try
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/AccessDenied";
 
-        // Session security settings
+        // Cookie security settings
         options.ExpireTimeSpan = TimeSpan.FromHours(24);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Strict;
-
-        // Validate session on each request
-        options.Events.OnValidatePrincipal = async context =>
-        {
-            var sessionToken = context.Principal?.FindFirstValue(SessionActivityMiddleware.SessionTokenClaimType);
-            if (string.IsNullOrEmpty(sessionToken))
-            {
-                // No session token - allow for backwards compatibility during migration
-                return;
-            }
-
-            var sessionService = context.HttpContext.RequestServices.GetService<IUserSessionService>();
-            if (sessionService == null)
-            {
-                return;
-            }
-
-            var session = await sessionService.ValidateSessionAsync(sessionToken);
-            if (session == null)
-            {
-                // Session is invalid, revoked, or expired - sign out
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-            }
-        };
     });
 
     // Add MVC services
@@ -126,101 +87,6 @@ try
 
     // Add user timezone service for converting timestamps to user's local time
     builder.Services.AddScoped<NetWorthTracker.Core.Services.IUserTimeZoneService, UserTimeZoneService>();
-
-    // Add rate limiting for auth endpoints
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-        // Add Retry-After header when rate limit is exceeded
-        options.OnRejected = async (context, cancellationToken) =>
-        {
-            if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-            {
-                context.HttpContext.Response.Headers.RetryAfter =
-                    ((int)retryAfter.TotalSeconds).ToString();
-            }
-
-            await ValueTask.CompletedTask;
-        };
-
-        // Rate limit for authentication endpoints (login, register, password reset)
-        options.AddPolicy("auth", context =>
-            RateLimitPartition.GetSlidingWindowLimiter(
-                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new SlidingWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(1),
-                    SegmentsPerWindow = 2,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Stricter rate limit for password reset to prevent enumeration
-        options.AddPolicy("password-reset", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 3,
-                    Window = TimeSpan.FromMinutes(15),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Data export - prevent bulk scraping (10 exports per hour per user)
-        options.AddPolicy("export", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                              context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Bulk balance updates (60 per hour per user)
-        options.AddPolicy("bulk-update", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                              context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 60,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Account creation - prevent spam (30 per hour per user)
-        options.AddPolicy("account-create", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                              context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 30,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Account updates (100 per hour per user)
-        options.AddPolicy("account-update", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-                              context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 100,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-    });
 
     // Add health checks
     builder.Services.AddHealthChecks()
@@ -298,20 +164,12 @@ try
 
     app.UseRouting();
 
-    app.UseRateLimiter();
-
     app.UseAuthentication();
 
     // Set user locale for formatting (dates, numbers, currency)
     app.UseUserLocale();
 
     app.UseAuthorization();
-
-    // Check subscription status for authenticated users
-    app.UseSubscriptionMiddleware();
-
-    // Track session activity
-    app.UseSessionActivity();
 
     app.MapStaticAssets();
 

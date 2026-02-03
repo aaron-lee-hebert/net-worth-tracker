@@ -105,14 +105,4 @@ public class AccountsApiTests
         response.Headers.Location?.ToString().Should().Contain("/Account/Login");
     }
 
-    [Test]
-    public async Task Subscription_UnauthenticatedRequest_RedirectsToLogin()
-    {
-        // Act
-        var response = await _client.GetAsync("/Subscription");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
-        response.Headers.Location?.ToString().Should().Contain("/Account/Login");
-    }
 }

@@ -31,11 +31,8 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
 
-    <!-- Stripe -->
-    <PackageVersion Include="Stripe.net" Version="47.4.0" />
-
-    <!-- SendGrid -->
-    <PackageVersion Include="SendGrid" Version="9.29.3" />
+    <!-- Email -->
+    <PackageVersion Include="MailKit" Version="4.9.0" />
 
     <!-- Resilience -->
     <PackageVersion Include="Polly" Version="8.5.0" />
@@ -59,6 +56,5 @@
     <!-- Logging -->
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageVersion Include="Serilog.Sinks.Seq" Version="9.0.0" />
   </ItemGroup>
 </Project>

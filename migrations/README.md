@@ -4,6 +4,23 @@
 
 This directory contains SQL migration files for database schema changes. Migrations are versioned and applied in order to ensure consistent database state across all environments.
 
+## Folder Structure
+
+Migrations are organized by database provider:
+
+```
+migrations/
+├── sqlite/           # SQLite migrations (PascalCase naming)
+│   ├── 001_baseline.sql
+│   └── 002_add_soft_delete_columns.sql
+├── postgres/         # PostgreSQL migrations (snake_case naming)
+│   ├── 001_baseline.sql
+│   └── 002_add_soft_delete_columns.sql
+└── README.md
+```
+
+The application automatically selects the correct folder based on the `DatabaseProvider` configuration setting.
+
 ## File Naming Convention
 
 - **Format:** `NNN_description.sql`
@@ -94,6 +111,8 @@ Set `RunMigrationsOnStartup=true` in `appsettings.json`:
 
 ### Example: Adding a new column
 
+**SQLite (`migrations/sqlite/004_add_account_notes.sql`):**
+
 ```sql
 -- Migration: 004_add_account_notes
 -- Description: Add notes column to Accounts table
@@ -104,9 +123,21 @@ ALTER TABLE Accounts ADD COLUMN Notes TEXT;
 
 -- @ROLLBACK
 -- SQLite doesn't support DROP COLUMN directly
--- For SQLite, we'd need to recreate the table
--- This is a simplified example for PostgreSQL:
-ALTER TABLE Accounts DROP COLUMN IF EXISTS Notes;
+-- Would need table recreation in production
+```
+
+**PostgreSQL (`migrations/postgres/004_add_account_notes.sql`):**
+
+```sql
+-- Migration: 004_add_account_notes
+-- Description: Add notes column to accounts table
+-- Author: Developer
+-- Date: 2025-02-01
+
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- @ROLLBACK
+ALTER TABLE accounts DROP COLUMN IF EXISTS notes;
 ```
 
 ## Health Check
@@ -137,17 +168,23 @@ The application includes a migration health check at `/health` that reports:
 
 ## Database Provider Notes
 
-### SQLite (Development/Self-hosted)
+### SQLite (`migrations/sqlite/`)
 
-- Uses TEXT for GUIDs and timestamps
+- **Table/Column names:** PascalCase (e.g., `Users`, `CurrentBalance`)
+- **Data types:** TEXT for GUIDs and timestamps, INTEGER for booleans, REAL for decimals
 - Limited ALTER TABLE support (no DROP COLUMN)
 - Use table recreation for complex changes
 
-### PostgreSQL (Production/SaaS)
+### PostgreSQL (`migrations/postgres/`)
 
-- Uses UUID and TIMESTAMP WITH TIME ZONE
+- **Table/Column names:** snake_case (e.g., `asp_net_users`, `current_balance`)
+- **Data types:** UUID, TIMESTAMPTZ, BOOLEAN, DOUBLE PRECISION
 - Full ALTER TABLE support
 - Transactional DDL supported
+
+### Keeping Migrations in Sync
+
+When creating a new migration, you must create it in **both** folders with the appropriate naming conventions and data types for each provider.
 
 ## Troubleshooting
 

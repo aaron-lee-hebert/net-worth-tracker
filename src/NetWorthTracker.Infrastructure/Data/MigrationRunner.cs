@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NHibernate;
@@ -9,13 +10,15 @@ using NetWorthTracker.Core.Interfaces;
 namespace NetWorthTracker.Infrastructure.Data;
 
 /// <summary>
-/// Runs database migrations from SQL files
+/// Runs database migrations from SQL files.
+/// Supports provider-specific migration folders (sqlite, postgres).
 /// </summary>
 public class MigrationRunner : IMigrationRunner
 {
     private readonly ISession _session;
     private readonly MigrationSettings _settings;
     private readonly ILogger<MigrationRunner> _logger;
+    private readonly string _databaseProvider;
 
     // Regex to parse migration filename: NNN_description.sql
     private static readonly Regex FileNamePattern = new(@"^(\d{3})_(.+)\.sql$", RegexOptions.Compiled);
@@ -26,11 +29,13 @@ public class MigrationRunner : IMigrationRunner
     public MigrationRunner(
         ISession session,
         IOptions<MigrationSettings> settings,
+        IConfiguration configuration,
         ILogger<MigrationRunner> logger)
     {
         _session = session;
         _settings = settings.Value;
         _logger = logger;
+        _databaseProvider = (configuration["DatabaseProvider"] ?? "SQLite").ToLowerInvariant();
     }
 
     public async Task EnsureMigrationTableExistsAsync()
@@ -64,11 +69,11 @@ public class MigrationRunner : IMigrationRunner
 
         if (!pending.Any())
         {
-            _logger.LogInformation("No pending migrations to apply");
+            _logger.LogInformation("No pending migrations to apply for provider {Provider}", _databaseProvider);
             return MigrationResult.NoMigrations();
         }
 
-        _logger.LogInformation("Found {Count} pending migrations", pending.Count);
+        _logger.LogInformation("Found {Count} pending migrations for provider {Provider}", pending.Count, _databaseProvider);
 
         var appliedVersions = new List<string>();
 
@@ -195,7 +200,15 @@ public class MigrationRunner : IMigrationRunner
     private List<MigrationInfo> GetMigrationFiles()
     {
         var migrations = new List<MigrationInfo>();
-        var migrationsPath = Path.GetFullPath(_settings.MigrationsPath);
+
+        // Use provider-specific subfolder (e.g., migrations/sqlite or migrations/postgres)
+        var providerFolder = _databaseProvider switch
+        {
+            "postgresql" => "postgres",
+            "postgres" => "postgres",
+            _ => "sqlite"
+        };
+        var migrationsPath = Path.GetFullPath(Path.Combine(_settings.MigrationsPath, providerFolder));
 
         if (!Directory.Exists(migrationsPath))
         {

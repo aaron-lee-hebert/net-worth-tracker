@@ -10,20 +10,17 @@ namespace NetWorthTracker.Application.Services;
 public class AdminService : IAdminService
 {
     private readonly IUserRepository _userRepository;
-    private readonly ISubscriptionRepository _subscriptionRepository;
     private readonly IAccountRepository _accountRepository;
     private readonly IAuditService _auditService;
     private readonly IAuditLogRepository _auditLogRepository;
 
     public AdminService(
         IUserRepository userRepository,
-        ISubscriptionRepository subscriptionRepository,
         IAccountRepository accountRepository,
         IAuditService auditService,
         IAuditLogRepository auditLogRepository)
     {
         _userRepository = userRepository;
-        _subscriptionRepository = subscriptionRepository;
         _accountRepository = accountRepository;
         _auditService = auditService;
         _auditLogRepository = auditLogRepository;
@@ -39,41 +36,20 @@ public class AdminService : IAdminService
         var newUsersThisMonth = await _userRepository.GetCountCreatedAfterAsync(startOfMonth);
         var newUsersLastMonth = await _userRepository.GetCountCreatedAfterAsync(startOfLastMonth) - newUsersThisMonth;
 
-        var activeCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Active);
-        var trialCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Trialing);
-        var expiredCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Expired);
-        var canceledCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Canceled);
-
-        // Calculate churn rate (expired + canceled this month / total active at start of month)
-        var totalAtStartOfMonth = activeCount + trialCount + expiredCount + canceledCount;
-        var churnRate = totalAtStartOfMonth > 0
-            ? Math.Round((decimal)(expiredCount + canceledCount) / totalAtStartOfMonth * 100, 2)
-            : 0;
-
         // Get signup trend for last 12 months
         var signupTrend = await GetSignupTrendAsync(12);
 
         // Get recent signups
         var recentUsers = await _userRepository.GetRecentUsersAsync(10);
-        var subscriptions = await _subscriptionRepository.GetAllWithUsersAsync();
-        var subscriptionLookup = subscriptions.ToDictionary(s => s.UserId);
 
-        var recentSignups = recentUsers.Select(u =>
+        var recentSignups = recentUsers.Select(u => new AdminUserViewModel
         {
-            subscriptionLookup.TryGetValue(u.Id, out var sub);
-            return new AdminUserViewModel
-            {
-                Id = u.Id,
-                Email = u.Email ?? string.Empty,
-                DisplayName = u.DisplayName,
-                CreatedAt = u.CreatedAt,
-                IsAdmin = u.IsAdmin,
-                EmailConfirmed = u.EmailConfirmed,
-                SubscriptionStatus = sub?.Status,
-                SubscriptionEndsAt = sub?.CurrentPeriodEnd ?? sub?.TrialEndsAt,
-                IsInTrial = sub?.IsInTrial,
-                TrialDaysRemaining = sub?.TrialDaysRemaining
-            };
+            Id = u.Id,
+            Email = u.Email ?? string.Empty,
+            DisplayName = u.DisplayName,
+            CreatedAt = u.CreatedAt,
+            IsAdmin = u.IsAdmin,
+            EmailConfirmed = u.EmailConfirmed
         }).ToList();
 
         return new AdminDashboardViewModel
@@ -81,11 +57,6 @@ public class AdminService : IAdminService
             TotalUsers = totalUsers,
             NewUsersThisMonth = newUsersThisMonth,
             NewUsersLastMonth = newUsersLastMonth,
-            ActiveSubscriptions = activeCount,
-            TrialUsers = trialCount,
-            ExpiredSubscriptions = expiredCount,
-            CanceledSubscriptions = canceledCount,
-            MonthlyChurnRate = churnRate,
             SignupTrend = signupTrend,
             RecentSignups = recentSignups
         };
@@ -124,9 +95,6 @@ public class AdminService : IAdminService
         var userList = users.ToList();
         var totalCount = userList.Count;
 
-        var subscriptions = await _subscriptionRepository.GetAllWithUsersAsync();
-        var subscriptionLookup = subscriptions.ToDictionary(s => s.UserId);
-
         var pagedUsers = userList
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -136,7 +104,6 @@ public class AdminService : IAdminService
         foreach (var user in pagedUsers)
         {
             var accounts = await _accountRepository.GetByUserIdAsync(user.Id);
-            subscriptionLookup.TryGetValue(user.Id, out var sub);
 
             items.Add(new AdminUserViewModel
             {
@@ -146,10 +113,6 @@ public class AdminService : IAdminService
                 CreatedAt = user.CreatedAt,
                 IsAdmin = user.IsAdmin,
                 EmailConfirmed = user.EmailConfirmed,
-                SubscriptionStatus = sub?.Status,
-                SubscriptionEndsAt = sub?.CurrentPeriodEnd ?? sub?.TrialEndsAt,
-                IsInTrial = sub?.IsInTrial,
-                TrialDaysRemaining = sub?.TrialDaysRemaining,
                 AccountCount = accounts.Count()
             });
         }
@@ -168,7 +131,6 @@ public class AdminService : IAdminService
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null) return null;
 
-        var subscription = await _subscriptionRepository.GetByUserIdAsync(userId);
         var accounts = await _accountRepository.GetByUserIdAsync(userId);
         var accountList = accounts.ToList();
 
@@ -191,13 +153,6 @@ public class AdminService : IAdminService
             TwoFactorEnabled = user.TwoFactorEnabled,
             Locale = user.Locale,
             TimeZone = user.TimeZone,
-            SubscriptionStatus = subscription?.Status,
-            TrialStartedAt = subscription?.TrialStartedAt,
-            TrialEndsAt = subscription?.TrialEndsAt,
-            CurrentPeriodEnd = subscription?.CurrentPeriodEnd,
-            StripeCustomerId = subscription?.StripeCustomerId,
-            IsInTrial = subscription?.IsInTrial,
-            TrialDaysRemaining = subscription?.TrialDaysRemaining,
             AccountCount = accountList.Count,
             TotalAssets = totalAssets,
             TotalLiabilities = totalLiabilities,
@@ -341,94 +296,5 @@ public class AdminService : IAdminService
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
         return value.Replace("\"", "\"\"");
-    }
-
-    public async Task<SubscriptionAnalyticsViewModel> GetSubscriptionAnalyticsAsync()
-    {
-        var activeCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Active);
-        var trialCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Trialing);
-        var expiredCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Expired);
-        var canceledCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.Canceled);
-        var pastDueCount = await _subscriptionRepository.GetCountByStatusAsync(SubscriptionStatus.PastDue);
-
-        var totalCount = await _subscriptionRepository.GetTotalCountAsync();
-
-        // Calculate trial conversion rate
-        // (users who went from trial to active) / (total users who completed trial)
-        // Simplified: active / (active + expired)
-        var completedTrials = activeCount + expiredCount;
-        var conversionRate = completedTrials > 0
-            ? Math.Round((decimal)activeCount / completedTrials * 100, 2)
-            : 0;
-
-        // Calculate monthly churn rate
-        var churnRate = totalCount > 0
-            ? Math.Round((decimal)(expiredCount + canceledCount) / totalCount * 100, 2)
-            : 0;
-
-        var breakdown = new List<SubscriptionStatusBreakdown>();
-        if (totalCount > 0)
-        {
-            breakdown.Add(new SubscriptionStatusBreakdown { Status = "Active", Count = activeCount, Percentage = Math.Round((decimal)activeCount / totalCount * 100, 1) });
-            breakdown.Add(new SubscriptionStatusBreakdown { Status = "Trialing", Count = trialCount, Percentage = Math.Round((decimal)trialCount / totalCount * 100, 1) });
-            breakdown.Add(new SubscriptionStatusBreakdown { Status = "Past Due", Count = pastDueCount, Percentage = Math.Round((decimal)pastDueCount / totalCount * 100, 1) });
-            breakdown.Add(new SubscriptionStatusBreakdown { Status = "Canceled", Count = canceledCount, Percentage = Math.Round((decimal)canceledCount / totalCount * 100, 1) });
-            breakdown.Add(new SubscriptionStatusBreakdown { Status = "Expired", Count = expiredCount, Percentage = Math.Round((decimal)expiredCount / totalCount * 100, 1) });
-        }
-
-        // Calculate annual churn rate (projected from monthly)
-        var annualChurnRate = Math.Min(100, Math.Round((1 - (decimal)Math.Pow((double)(1 - churnRate / 100), 12)) * 100, 2));
-
-        return new SubscriptionAnalyticsViewModel
-        {
-            TotalSubscriptions = totalCount,
-            TotalActive = activeCount,
-            TotalTrialing = trialCount,
-            TotalExpired = expiredCount,
-            TotalCanceled = canceledCount,
-            TotalPastDue = pastDueCount,
-            TrialConversionRate = conversionRate,
-            MonthlyChurnRate = churnRate,
-            AnnualChurnRate = annualChurnRate,
-            StatusBreakdown = breakdown
-        };
-    }
-
-    public async Task<PagedResult<AdminSubscriptionViewModel>> GetSubscriptionsAsync(int page, int pageSize, SubscriptionStatus? status = null)
-    {
-        var subscriptions = status.HasValue
-            ? await _subscriptionRepository.GetByStatusAsync(status.Value, 1000)
-            : await _subscriptionRepository.GetAllWithUsersAsync();
-
-        var subscriptionList = subscriptions.ToList();
-        var totalCount = subscriptionList.Count;
-
-        var pagedSubscriptions = subscriptionList
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(s => new AdminSubscriptionViewModel
-            {
-                Id = s.Id,
-                UserId = s.UserId,
-                UserEmail = s.User?.Email ?? "Unknown",
-                UserDisplayName = s.User?.DisplayName ?? "Unknown",
-                Status = s.Status,
-                CreatedAt = s.CreatedAt,
-                TrialStartedAt = s.TrialStartedAt,
-                TrialEndsAt = s.TrialEndsAt,
-                CurrentPeriodEnd = s.CurrentPeriodEnd,
-                StripeCustomerId = s.StripeCustomerId,
-                StripeSubscriptionId = s.StripeSubscriptionId,
-                HasActiveAccess = s.HasActiveAccess
-            })
-            .ToList();
-
-        return new PagedResult<AdminSubscriptionViewModel>
-        {
-            Items = pagedSubscriptions,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        };
     }
 }

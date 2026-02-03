@@ -1,64 +1,74 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetWorthTracker.Core.Services;
-using SendGrid;
-using SendGrid.Helpers.Mail;
+using MailKit.Net.Smtp;
+using MimeKit;
 
 namespace NetWorthTracker.Infrastructure.Services;
 
-public class SendGridSettings
+public class SmtpSettings
 {
-    public string ApiKey { get; set; } = string.Empty;
+    public bool Enabled { get; set; } = false;
+    public string Host { get; set; } = string.Empty;
+    public int Port { get; set; } = 587;
+    public bool UseSsl { get; set; } = true;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
     public string FromEmail { get; set; } = string.Empty;
     public string FromName { get; set; } = "Net Worth Tracker";
 }
 
-public class SendGridEmailService : IEmailService
+public class SmtpEmailService : IEmailService
 {
-    private readonly SendGridSettings _settings;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<SendGridEmailService> _logger;
+    private readonly SmtpSettings _settings;
+    private readonly ILogger<SmtpEmailService> _logger;
 
-    public SendGridEmailService(
-        IOptions<SendGridSettings> settings,
-        IHttpClientFactory httpClientFactory,
-        ILogger<SendGridEmailService> logger)
+    public SmtpEmailService(
+        IOptions<SmtpSettings> settings,
+        ILogger<SmtpEmailService> logger)
     {
         _settings = settings.Value;
-        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
-    public bool IsConfigured => !string.IsNullOrEmpty(_settings.ApiKey) && !string.IsNullOrEmpty(_settings.FromEmail);
+    public bool IsConfigured => _settings.Enabled &&
+                                !string.IsNullOrEmpty(_settings.Host) &&
+                                !string.IsNullOrEmpty(_settings.FromEmail);
 
     public async Task SendEmailAsync(string to, string subject, string htmlBody)
     {
         if (!IsConfigured)
         {
-            _logger.LogWarning("SendGrid not configured. Would have sent email to {To} with subject: {Subject}", to, subject);
+            _logger.LogWarning("SMTP not configured. Would have sent email to {To} with subject: {Subject}", to, subject);
             return;
         }
 
         try
         {
-            var httpClient = _httpClientFactory.CreateClient("SendGrid");
-            var client = new SendGridClient(httpClient, _settings.ApiKey);
-            var from = new EmailAddress(_settings.FromEmail, _settings.FromName);
-            var toAddress = new EmailAddress(to);
-            var msg = MailHelper.CreateSingleEmail(from, toAddress, subject, null, htmlBody);
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+            message.To.Add(new MailboxAddress(null, to));
+            message.Subject = subject;
 
-            var response = await client.SendEmailAsync(msg);
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = htmlBody
+            };
+            message.Body = bodyBuilder.ToMessageBody();
 
-            if (response.IsSuccessStatusCode)
+            using var client = new SmtpClient();
+
+            await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl);
+
+            if (!string.IsNullOrEmpty(_settings.Username) && !string.IsNullOrEmpty(_settings.Password))
             {
-                _logger.LogInformation("Email sent successfully to {To}", to);
+                await client.AuthenticateAsync(_settings.Username, _settings.Password);
             }
-            else
-            {
-                var body = await response.Body.ReadAsStringAsync();
-                _logger.LogError("SendGrid returned {StatusCode}: {Body}", response.StatusCode, body);
-                throw new Exception($"SendGrid returned {response.StatusCode}");
-            }
+
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation("Email sent successfully to {To}", to);
         }
         catch (Exception ex)
         {

@@ -10,11 +10,6 @@ public class AdminDashboardViewModel
     public int TotalUsers { get; set; }
     public int NewUsersThisMonth { get; set; }
     public int NewUsersLastMonth { get; set; }
-    public int ActiveSubscriptions { get; set; }
-    public int TrialUsers { get; set; }
-    public int ExpiredSubscriptions { get; set; }
-    public int CanceledSubscriptions { get; set; }
-    public decimal MonthlyChurnRate { get; set; }
     public List<SignupTrendPoint> SignupTrend { get; set; } = new();
     public List<AdminUserViewModel> RecentSignups { get; set; } = new();
 }
@@ -39,10 +34,6 @@ public class AdminUserViewModel
     public DateTime CreatedAt { get; set; }
     public bool IsAdmin { get; set; }
     public bool EmailConfirmed { get; set; }
-    public SubscriptionStatus? SubscriptionStatus { get; set; }
-    public DateTime? SubscriptionEndsAt { get; set; }
-    public bool? IsInTrial { get; set; }
-    public int? TrialDaysRemaining { get; set; }
     public int AccountCount { get; set; }
 }
 
@@ -63,15 +54,6 @@ public class AdminUserDetailsViewModel
     public bool TwoFactorEnabled { get; set; }
     public string? Locale { get; set; }
     public string? TimeZone { get; set; }
-
-    // Subscription info
-    public SubscriptionStatus? SubscriptionStatus { get; set; }
-    public DateTime? TrialStartedAt { get; set; }
-    public DateTime? TrialEndsAt { get; set; }
-    public DateTime? CurrentPeriodEnd { get; set; }
-    public string? StripeCustomerId { get; set; }
-    public bool? IsInTrial { get; set; }
-    public int? TrialDaysRemaining { get; set; }
 
     // Account summary
     public int AccountCount { get; set; }
@@ -118,52 +100,6 @@ public class AuditLogFilter
 }
 
 /// <summary>
-/// Subscription analytics for admin
-/// </summary>
-public class SubscriptionAnalyticsViewModel
-{
-    public int TotalSubscriptions { get; set; }
-    public int TotalActive { get; set; }
-    public int TotalTrialing { get; set; }
-    public int TotalExpired { get; set; }
-    public int TotalCanceled { get; set; }
-    public int TotalPastDue { get; set; }
-    public decimal TrialConversionRate { get; set; }
-    public decimal MonthlyChurnRate { get; set; }
-    public decimal AnnualChurnRate { get; set; }
-    public List<SubscriptionStatusBreakdown> StatusBreakdown { get; set; } = new();
-}
-
-/// <summary>
-/// Subscription status breakdown for charts
-/// </summary>
-public class SubscriptionStatusBreakdown
-{
-    public string Status { get; set; } = string.Empty;
-    public int Count { get; set; }
-    public decimal Percentage { get; set; }
-}
-
-/// <summary>
-/// Subscription summary for admin list
-/// </summary>
-public class AdminSubscriptionViewModel
-{
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public string UserEmail { get; set; } = string.Empty;
-    public string UserDisplayName { get; set; } = string.Empty;
-    public SubscriptionStatus Status { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? TrialStartedAt { get; set; }
-    public DateTime? TrialEndsAt { get; set; }
-    public DateTime? CurrentPeriodEnd { get; set; }
-    public string? StripeCustomerId { get; set; }
-    public string? StripeSubscriptionId { get; set; }
-    public bool HasActiveAccess { get; set; }
-}
-
-/// <summary>
 /// Generic paginated result
 /// </summary>
 public class PagedResult<T>
@@ -184,7 +120,6 @@ public class HealthDashboardViewModel
 {
     public string OverallStatus { get; set; } = string.Empty;
     public DateTime CheckedAt { get; set; }
-    public string? SeqServerUrl { get; set; }
     public List<HealthCheckViewModel> Checks { get; set; } = new();
 }
 
