@@ -1,296 +1,141 @@
-✅ Net Worth Tracker – "Ready to Charge $30/Year" Checklist
-## PHASE 0 — Foundations (No User-Facing Value Yet)
+# Net Worth Tracker - Development Roadmap
 
-> If this isn't done, nothing else matters.
+## Overview
 
-1. Environment Configuration
-- [x] Separate development, staging, production configs (dev/prod exist; staging uses env var overrides)
-- [x] Secrets loaded via environment variables (no .env committed)
-- [x] App boots cleanly with empty DB
+This document tracks completed features and future enhancements for the self-hosted Net Worth Tracker application.
 
-2. Database Safety
-- [x] Backup scripts and procedures (see [docs/BACKUP-RESTORE.md](docs/BACKUP-RESTORE.md))
-- [x] Written restore procedure (markdown in repo)
-- [ ] Manually test one restore
+---
 
-3. Basic Observability
-- [x] Application-level logging
-- [x] Error tracking (even minimal)
+## Completed Features
+
+### Core Functionality
+- [x] Net worth calculation (Assets - Liabilities)
+- [x] Multiple account types (Banking, Investment, Real Estate, Vehicle, Other Asset/Liability)
+- [x] Balance history tracking with time-series data
+- [x] Dashboard with real-time net worth display
+- [x] Trend visualization (month-over-month delta, direction indicators)
+- [x] Interactive charts for net worth over time
+
+### Reporting & Analysis
+- [x] Quarterly reports with detailed breakdown
+- [x] Net worth history visualization
+- [x] Account allocation pie charts
+- [x] CSV export (accounts, balance history, reports)
+
+### Forecasting
+- [x] 1-30 year projections
+- [x] Customizable growth/depreciation rates by account type
+- [x] Default assumptions (Investments 7%, Real Estate 2%, Banking 0.5%, Vehicles -15%)
+- [x] Reset-to-default functionality
+
+### Alerts & Notifications (Optional)
+- [x] Net worth change threshold alerts
+- [x] Cash runway warnings
+- [x] Monthly snapshot generation
+- [x] Email notifications via SMTP (when configured)
+- [x] User-configurable alert preferences
+
+### Authentication & Security
+- [x] ASP.NET Core Identity authentication
+- [x] Strong password requirements (8+ chars, upper/lower/digit)
+- [x] Account lockout (5 failed attempts = 15 min lockout)
+- [x] Two-factor authentication (TOTP)
+- [x] Email verification (when SMTP configured)
+- [x] Password reset flow
+- [x] HTTPS enforcement with HSTS
+- [x] CSRF protection
+- [x] Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
+- [x] Audit logging (optional)
+
+### User Experience
+- [x] First-session onboarding wizard
+- [x] Account deletion with cascade
+- [x] Privacy Policy and Terms of Service
 - [x] Health check endpoint (/health)
 
-## PHASE 1 — Account & Data Ownership (Mandatory for Payments)
+### Deployment
+- [x] Docker support with multi-stage builds
+- [x] SQLite default (zero-configuration)
+- [x] PostgreSQL support (production option)
+- [x] Provider-specific database migrations
+- [x] Environment-based configuration
+- [x] Serilog structured logging
 
-4. User Authentication Hardening
-- [x] Email verification on signup (when SMTP configured; auto-confirms for self-hosted without email)
-- [x] Password reset flow (user-initiated via email when SMTP configured)
-- [x] Rate limiting on auth endpoints (10 req/min for login/register, 3 req/15min for password reset)
-- [x] Strong password requirements (8+ chars, upper/lower/digit)
-- [x] Multi-factor authentication (TOTP)
-- [x] Account lockout (5 failed attempts = 15 min lockout)
+### Code Quality
+- [x] Clean Architecture (Core, Application, Infrastructure, Web)
+- [x] Repository pattern with generic base
+- [x] Service layer abstraction
+- [x] 60%+ test coverage with CI enforcement
+- [x] Coding standards documentation
+- [x] Dependabot for vulnerability scanning
 
-5. Account Deletion
-- [x] User-initiated account deletion
-- [x] Cascading delete of all user data
-- [ ] Confirmation step + grace period (optional)
+---
 
-6. Authorization Guarantees
-- [x] All asset/liability data scoped by user ID
-- [x] Explicit checks on all read/write endpoints
-- [x] No reliance on "implicit" ORM filtering
+## Future Enhancements
 
-## PHASE 2 — Subscription Plumbing (Hidden, Not Marketed Yet)
+### High Priority
 
-7. Stripe Integration (Isolated)
-- [x] Single product: $30/year (configurable via Stripe__PriceId)
-- [x] Stripe Checkout (not custom forms)
-- [x] Webhook handling:
-  - [x] checkout.session.completed
-  - [x] invoice.payment_failed
-  - [x] customer.subscription.deleted
-  - [x] customer.subscription.updated
+#### Data Protection
+- [ ] Encrypt AccountNumber field at rest
+- [ ] Encryption key rotation support
+- [ ] GDPR data export (download all user data as JSON/ZIP)
 
-8. Subscription State Model
-- [x] Local subscription table:
-  - [x] user_id
-  - [x] stripe_customer_id
-  - [x] subscription_status
-  - [x] current_period_end
-- [x] No business logic embedded in Stripe IDs
+#### Background Job Reliability
+- [ ] Idempotency for AlertService.ProcessAlertsAsync()
+- [ ] Idempotency for SendPendingSnapshotEmailsAsync()
+- [ ] Job status tracking (last run, success/failure)
+- [ ] Health check for background services
 
-9. Access Enforcement
-- [x] Trial period (14 days, configurable)
-- [x] Middleware:
-  - [x] Active subscription OR active trial → full access
-  - [x] Expired → read-only (no writes)
-- [x] Graceful messaging (no lockout rage)
-- [x] Self-hosted mode (when Stripe not configured, all features free)
+#### Admin Features
+- [ ] Admin UI to view audit logs
+- [ ] User management interface improvements
 
-## PHASE 3 — Core Value Delivery (This Is the Product)
+### Medium Priority
 
-10. Net Worth Calculation Engine
-- [x] Assets – Liabilities
-- [x] Time-series snapshots
-- [x] Deterministic, repeatable results
+#### Session Security
+- [ ] Configurable session timeout (idle + absolute)
+- [ ] Invalidate sessions on password change
+- [ ] "Sign out all devices" feature
+- [ ] Concurrent session limit
 
-11. Trend Visualization
-- [x] Month-over-month delta
-- [x] Direction indicator (↑ ↓ →)
-- [x] Simple chart (no over-polish)
+#### Testing
+- [ ] Increase coverage to 80% on critical paths
+- [ ] Add security-focused test cases
+- [ ] Performance benchmarks
 
-12. Forecasting v1
-- [x] 1-30 year projections (exceeds 12-month requirement)
-- [x] Conservative defaults:
-  - Investments 7%, Real Estate 2%, Banking 0.5%, Vehicles -15%
-  - Liabilities: paydown to $0
-- [x] Explicit disclaimer text
+#### Monitoring
+- [ ] Error alerting (email on unhandled exceptions)
+- [ ] Performance metrics logging
+- [ ] Optional APM integration
 
-## PHASE 4 — Alerts & Retention Hooks (Prevents Silent Churn)
+### Low Priority / Nice to Have
 
-13. Alert Engine
-- [x] Threshold-based alerts:
-  - [x] Net worth change % (configurable threshold)
-  - [x] Cash runway (configurable months)
-- [x] User-configurable (on/off per alert type)
-- [x] Hard cap on number of alerts (5 per day)
+#### Data Management
+- [ ] Soft delete with grace period for accounts
+- [ ] Data retention policies
+- [ ] Bulk import from CSV
 
-14. Monthly Snapshot Generator
-- [x] Net worth delta (absolute and percentage)
-- [x] Biggest contributor (account with largest change)
-- [x] One-sentence interpretation
-- [x] Background service for automated generation
+#### UX Improvements
+- [ ] Dark mode theme
+- [ ] Mobile-responsive improvements
+- [ ] Keyboard shortcuts
 
-15. Email Delivery
-- [x] Transactional email setup (SendGrid with branded templates)
-- [x] Monthly snapshot email
-- [x] Payment-related emails only (no marketing)
-- [x] UI for managing notification preferences in Settings
+---
 
-## PHASE 5 — UX Polish That Actually Matters
+## Out of Scope
 
-16. First-Session Onboarding
-- [x] Guided asset/liability entry (welcome wizard on Dashboard)
-- [x] Immediate insight after completion (redirects to Dashboard with net worth display)
-- [x] No empty states without explanation (onboarding card explains account types)
+The following features are intentionally excluded to keep the application focused:
 
-17. Forecast Assumption Transparency
-- [x] Simple UI showing assumptions
-- [x] Optional overrides (advanced users can customize growth rates)
-- [x] Reset-to-default button
+- Bank integrations / automatic sync
+- Budgeting features
+- Mobile applications
+- AI/ML predictions
+- Multi-currency support
+- Multi-user / family sharing
+- Cloud sync / backup services
 
-18. Export Capability
-- [x] CSV export of quarterly reports
-- [x] CSV export of individual assets/liabilities (Accounts page + individual account history)
-- [x] CSV export of net worth history (Reports page)
+---
 
-## PHASE 6 — Legal & Trust (Boring but Required)
+## Contributing
 
-19. Legal Pages
-- [x] Privacy Policy (comprehensive, plain English, covers self-hosted and SaaS)
-- [x] Terms of Service (complete with disclaimers and liability limitations)
-- [x] Data handling explanation (included in Privacy Policy sections 1-4)
-
-20. Security Hygiene
-- [x] HTTPS enforced (UseHttpsRedirection in production)
-- [x] Secure cookies (ASP.NET Core Identity defaults)
-- [x] CSRF protection
-- [x] Basic headers (HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy)
-
-## PHASE 7 — Final Go / No-Go Checks
-
-21. Cold Start Test
-- New user → insight in <5 minutes
-- No console errors
-- No dead ends
-
-22. Payment Failure Simulation
-- Expired card
-- Canceled subscription
-- Graceful downgrade
-
-23. Disaster Drill
-- Restore DB from backup
-- Confirm app boots and data exists
-
-## PHASE 8 — Architecture & Code Quality (Clean Architecture + TDD + SOLID)
-
-> Technical debt reduction for long-term maintainability.
-
-24. Application Services Layer
-- [x] Create `NetWorthTracker.Application` project
-- [x] Extract `IDashboardService` from DashboardController
-- [x] Extract `IForecastService` from ForecastsController (~420 lines of business logic)
-- [x] Extract `IReportService` from ReportsController (~330 lines of business logic)
-- [x] Extract `IExportService` for CSV generation logic
-- [x] Extract `IAccountManagementService` from AccountsController (~500 lines)
-- [x] Reduce all controllers to <200 lines (delegation only)
-
-25. Repository Standardization
-- [x] Make `ISubscriptionRepository` extend `IRepository<Subscription>`
-- [x] Make `IAlertConfigurationRepository` extend `IRepository<AlertConfiguration>`
-- [x] Make `IMonthlySnapshotRepository` extend `IRepository<MonthlySnapshot>`
-- [x] Make `IForecastAssumptionsRepository` extend `IRepository<ForecastAssumptions>`
-
-26. Test Coverage Expansion (Target: 60%+)
-- [x] Add tests for `AlertService` (complex background logic)
-- [x] Add tests for `StripeService` (payment processing - critical)
-- [x] Add tests for `SendGridEmailService`
-- [x] Add tests for new Application Services (as created)
-- [x] Add integration tests for repositories
-- [x] Add controller tests for all endpoints
-- [x] Set up code coverage reporting in CI
-
-27. Code Organization
-- [x] Restructure tests folder to mirror src/:
-  - `NetWorthTracker.Core.Tests`
-  - `NetWorthTracker.Infrastructure.Tests`
-  - `NetWorthTracker.Application.Tests`
-  - `NetWorthTracker.Web.Tests`
-- [x] Document architecture decisions (ADR format)
-- [x] Add coding standards document
-
-## PHASE 9 — Production Hardening (Security & Reliability)
-
-> Critical items for a financial application handling real user data.
-
-28. Input Validation (Critical)
-- [x] Add validation attributes to `AccountCreateViewModel` (Required, StringLength, Range)
-- [x] Add validation attributes to `AccountEditViewModel`
-- [x] Add validation attributes to `BulkBalanceUpdateViewModel`
-- [x] Add decimal range validation for all balance fields (-999,999,999,999.99 to 999,999,999,999.99)
-- [x] Add string length limits: Name (100), Description (500), Institution (100), AccountNumber (50), Notes (1000)
-- [x] Server-side validation in controllers (don't rely solely on ModelState)
-- [x] Add validation to `BalanceHistoryCreateViewModel` and `BalanceHistoryEditViewModel`
-- [x] Add validation to `ForecastAssumptionsViewModel` (growth rate ranges)
-
-29. Audit Logging (Critical)
-- [x] Create `AuditLog` entity (UserId, Action, EntityType, EntityId, OldValue, NewValue, Timestamp, IpAddress)
-- [x] Create `IAuditService` interface and implementation
-- [x] Log account create/update/delete operations
-- [x] Log balance changes with old/new values
-- [x] Log login attempts (successful and failed) - extend existing auth logging
-- [x] Log sensitive operations (password change, 2FA enable/disable, account deletion)
-- [x] Log data exports
-- [ ] Admin UI to view audit logs (or export to file)
-
-30. Data Protection (Critical)
-- [ ] Encrypt `AccountNumber` field at rest (use ASP.NET Core Data Protection or similar)
-- [ ] Create encryption service with key rotation support
-- [ ] Migrate existing plaintext account numbers
-- [ ] Implement GDPR data export (user can download all their data as JSON/ZIP)
-- [ ] Add data export button to Settings page
-
-31. Dependency Security (Critical)
-- [x] Add `.github/dependabot.yml` for NuGet vulnerability scanning
-- [x] Add `.github/dependabot.yml` for GitHub Actions updates
-- [x] Run initial `dotnet list package --vulnerable` check
-- [x] Fix vulnerable transitive dependencies (System.Net.Http, System.Text.RegularExpressions)
-- [x] Document dependency update procedure (see [docs/DEPENDENCY-UPDATES.md](docs/DEPENDENCY-UPDATES.md))
-
-32. External Service Resilience (High Priority)
-- [ ] Add Polly NuGet package
-- [ ] Implement retry policy for Stripe API calls (3 retries, exponential backoff)
-- [ ] Implement retry policy for SendGrid API calls
-- [ ] Implement circuit breaker for external services
-- [ ] Add fallback behavior when email service is down (queue for retry)
-- [ ] Log all external service failures with correlation IDs
-
-33. Background Job Reliability (High Priority)
-- [ ] Add idempotency to `AlertService.ProcessAlertsAsync()` (track processed alerts by ID + date)
-- [ ] Add idempotency to `SendPendingSnapshotEmailsAsync()` (prevent duplicate emails)
-- [ ] Add job status tracking (last run time, success/failure, items processed)
-- [ ] Add health check for background services
-- [ ] Consider Hangfire or similar for job persistence (optional, adds complexity)
-
-34. Database Migrations (High Priority)
-- [ ] Evaluate migration strategy: FluentMigrator vs manual SQL scripts
-- [ ] Create initial baseline migration from current schema
-- [ ] Document migration procedure for production deployments
-- [ ] Add migration verification to CI pipeline
-- [ ] Create rollback scripts for each migration
-
-35. Session Security (High Priority)
-- [ ] Configure session timeout (30 minutes idle, 24 hours absolute)
-- [ ] Invalidate all sessions on password change
-- [ ] Add concurrent session limit (max 5 active sessions per user)
-- [ ] Add "Sign out all devices" button to Settings
-- [ ] Log session creation/destruction
-
-36. Rate Limiting Expansion (High Priority)
-- [ ] Add rate limiting to export endpoints (10 exports per hour)
-- [ ] Add rate limiting to bulk update endpoint (60 requests per hour)
-- [ ] Add rate limiting to account create endpoint (30 per hour)
-- [ ] Add global rate limit per user (1000 requests per hour)
-- [ ] Return proper 429 status with Retry-After header
-
-37. Integration Tests (Medium Priority)
-- [ ] Create test database fixture with SQLite in-memory
-- [ ] Add integration tests for AccountRepository with real database
-- [ ] Add integration tests for full request pipeline (WebApplicationFactory)
-- [ ] Add integration tests for Stripe webhook signature verification
-- [ ] Add integration tests for authentication flows
-- [ ] Target: 80% coverage on critical paths
-
-38. Monitoring & Alerting (Medium Priority)
-- [ ] Add Application Insights or similar APM (optional for self-hosted)
-- [ ] Configure error alerting (email on unhandled exceptions)
-- [ ] Add performance metrics logging (request duration, DB query time)
-- [ ] Create uptime monitoring script or use external service
-- [ ] Add dashboard for key metrics (active users, failed payments, error rate)
-
-39. Data Retention & Compliance (Medium Priority)
-- [ ] Define retention policy: balance history (forever), audit logs (7 years), deleted accounts (30 days grace)
-- [ ] Implement soft delete with grace period for user accounts
-- [ ] Add scheduled job to permanently delete expired soft-deleted data
-- [ ] Add cookie consent banner (if adding analytics)
-- [ ] Document data retention in Privacy Policy
-
-## What Is Explicitly Out of Scope
-
-❌ Bank integrations
-❌ Budgeting
-❌ Mobile apps
-❌ AI anything
-❌ Multi-currency
-❌ Tiered pricing
-
-If Claude suggests these, ignore it.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.

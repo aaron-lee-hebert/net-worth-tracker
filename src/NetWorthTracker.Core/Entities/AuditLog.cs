@@ -111,6 +111,11 @@ public static class AuditAction
     public const string SettingsUpdated = "Settings.Updated";
     public const string AlertSettingsUpdated = "Settings.Alerts.Updated";
     public const string ForecastAssumptionsUpdated = "Settings.Forecast.Updated";
+
+    // Session management
+    public const string SessionCreated = "Session.Created";
+    public const string SessionRevoked = "Session.Revoked";
+    public const string SessionsRevoked = "Sessions.AllRevoked";
 }
 
 /// <summary>
@@ -124,4 +129,5 @@ public static class AuditEntityType
     public const string Subscription = "Subscription";
     public const string AlertConfiguration = "AlertConfiguration";
     public const string ForecastAssumptions = "ForecastAssumptions";
+    public const string Session = "Session";
 }

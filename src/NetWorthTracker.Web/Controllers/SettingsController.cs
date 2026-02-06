@@ -6,6 +6,7 @@ using NetWorthTracker.Core;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
+using NetWorthTracker.Application.Interfaces;
 
 namespace NetWorthTracker.Web.Controllers;
 
@@ -19,6 +20,7 @@ public class SettingsController : Controller
     private readonly IAlertService _alertService;
     private readonly IEmailService _emailService;
     private readonly IAuditService _auditService;
+    private readonly IDataExportService _dataExportService;
     private readonly ILogger<SettingsController> _logger;
 
     public SettingsController(
@@ -29,6 +31,7 @@ public class SettingsController : Controller
         IAlertService alertService,
         IEmailService emailService,
         IAuditService auditService,
+        IDataExportService dataExportService,
         ILogger<SettingsController> logger)
     {
         _userManager = userManager;
@@ -38,6 +41,7 @@ public class SettingsController : Controller
         _alertService = alertService;
         _emailService = emailService;
         _auditService = auditService;
+        _dataExportService = dataExportService;
         _logger = logger;
     }
 
@@ -444,6 +448,24 @@ public class SettingsController : Controller
         TempData["SuccessMessage"] = "New recovery codes have been generated. Your old codes are no longer valid.";
 
         return RedirectToAction(nameof(MfaRecoveryCodes));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExportAllData()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        var result = await _dataExportService.ExportAllUserDataAsync(user.Id);
+
+        if (!result.Success)
+        {
+            TempData["ErrorMessage"] = result.ErrorMessage ?? "Failed to export data.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        return File(result.Content!, result.ContentType, result.FileName);
     }
 
     private string FormatKey(string unformattedKey)

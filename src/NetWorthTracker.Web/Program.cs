@@ -1,11 +1,12 @@
-using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Application;
 using NetWorthTracker.Infrastructure;
 using NetWorthTracker.Infrastructure.Data;
+using NetWorthTracker.Infrastructure.Health;
 using NetWorthTracker.Web.HealthChecks;
 using NetWorthTracker.Web.Middleware;
 using NetWorthTracker.Web.Services;
@@ -22,19 +23,10 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Configure Serilog from appsettings.json with optional Seq sink for SaaS
+    // Configure Serilog from appsettings.json
     builder.Host.UseSerilog((context, services, configuration) =>
     {
         configuration.ReadFrom.Configuration(context.Configuration);
-
-        // Add Seq sink if configured (for SaaS/hosted version)
-        var seqServerUrl = context.Configuration["Seq:ServerUrl"];
-        if (!string.IsNullOrEmpty(seqServerUrl))
-        {
-            var seqApiKey = context.Configuration["Seq:ApiKey"];
-            configuration.WriteTo.Seq(seqServerUrl, apiKey: string.IsNullOrEmpty(seqApiKey) ? null : seqApiKey);
-            Log.Information("Seq logging enabled: {SeqServerUrl}", seqServerUrl);
-        }
     });
 
     // Add Infrastructure services (NHibernate, Repositories)
@@ -42,6 +34,12 @@ try
 
     // Add Application services
     builder.Services.AddApplication();
+
+    // Configure Data Protection for encryption keys
+    var keyPath = builder.Configuration["DataProtection:KeyPath"] ?? "./keys";
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keyPath))
+        .SetApplicationName("NetWorthTracker");
 
     // Add Identity services
     builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -72,6 +70,13 @@ try
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/AccessDenied";
+
+        // Cookie security settings
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
     // Add MVC services
@@ -83,40 +88,11 @@ try
     // Add user timezone service for converting timestamps to user's local time
     builder.Services.AddScoped<NetWorthTracker.Core.Services.IUserTimeZoneService, UserTimeZoneService>();
 
-    // Add rate limiting for auth endpoints
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-        // Rate limit for authentication endpoints (login, register, password reset)
-        options.AddPolicy("auth", context =>
-            RateLimitPartition.GetSlidingWindowLimiter(
-                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new SlidingWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(1),
-                    SegmentsPerWindow = 2,
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-
-        // Stricter rate limit for password reset to prevent enumeration
-        options.AddPolicy("password-reset", context =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 3,
-                    Window = TimeSpan.FromMinutes(15),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0
-                }));
-    });
-
     // Add health checks
     builder.Services.AddHealthChecks()
-        .AddCheck<DatabaseHealthCheck>("database");
+        .AddCheck<DatabaseHealthCheck>("database")
+        .AddCheck<BackgroundJobHealthCheck>("background-jobs")
+        .AddCheck<MigrationHealthCheck>("migrations");
 
     // Add background service for alerts
     builder.Services.AddHostedService<AlertBackgroundService>();
@@ -188,17 +164,12 @@ try
 
     app.UseRouting();
 
-    app.UseRateLimiter();
-
     app.UseAuthentication();
 
     // Set user locale for formatting (dates, numbers, currency)
     app.UseUserLocale();
 
     app.UseAuthorization();
-
-    // Check subscription status for authenticated users
-    app.UseSubscriptionMiddleware();
 
     app.MapStaticAssets();
 
@@ -232,6 +203,36 @@ try
         using var scope = app.Services.CreateScope();
         var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
         await seeder.SeedAsync();
+    }
+
+    // Migrate existing account numbers to encrypted format if enabled
+    if (app.Configuration.GetValue<bool>("MigrateAccountNumbers"))
+    {
+        using var scope = app.Services.CreateScope();
+        var migrator = scope.ServiceProvider.GetRequiredService<AccountNumberMigrator>();
+        await migrator.MigrateAsync();
+    }
+
+    // Run database migrations on startup if enabled
+    if (app.Configuration.GetValue<bool>("RunMigrationsOnStartup"))
+    {
+        using var scope = app.Services.CreateScope();
+        var migrationRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+        var result = await migrationRunner.RunMigrationsAsync();
+
+        if (!result.Success)
+        {
+            Log.Fatal("Database migration failed at version {Version}: {Error}",
+                result.FailedVersion, result.ErrorMessage);
+            throw new Exception($"Migration {result.FailedVersion} failed: {result.ErrorMessage}");
+        }
+
+        if (result.MigrationsApplied > 0)
+        {
+            Log.Information("Applied {Count} database migrations: {Versions}",
+                result.MigrationsApplied,
+                string.Join(", ", result.AppliedVersions));
+        }
     }
 
     app.Run();
@@ -273,6 +274,18 @@ static async Task<bool> HandleCliCommands(string[] args, IServiceProvider servic
 
         case "--list-users":
             await ListUsersCommand(services);
+            return true;
+
+        case "--migrate":
+            await RunMigrationsCommand(services);
+            return true;
+
+        case "--migrate-status":
+            await ShowMigrationStatusCommand(services);
+            return true;
+
+        case "--migrate-rollback":
+            await RollbackMigrationCommand(services);
             return true;
 
         case "--help":
@@ -445,6 +458,119 @@ static async Task ListUsersCommand(IServiceProvider services)
     Console.WriteLine($"Admins: {users.Count(u => u.IsAdmin)}");
 }
 
+static async Task RunMigrationsCommand(IServiceProvider services)
+{
+    Console.WriteLine("Running database migrations...");
+    Console.WriteLine();
+
+    using var scope = services.CreateScope();
+    var migrationRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+
+    var result = await migrationRunner.RunMigrationsAsync();
+
+    if (result.Success)
+    {
+        if (result.MigrationsApplied == 0)
+        {
+            Console.WriteLine("No pending migrations to apply.");
+        }
+        else
+        {
+            Console.WriteLine($"Successfully applied {result.MigrationsApplied} migration(s):");
+            foreach (var version in result.AppliedVersions)
+            {
+                Console.WriteLine($"  - {version}");
+            }
+        }
+    }
+    else
+    {
+        Console.WriteLine($"Migration failed at version {result.FailedVersion}:");
+        Console.WriteLine($"  Error: {result.ErrorMessage}");
+        Environment.Exit(1);
+    }
+}
+
+static async Task ShowMigrationStatusCommand(IServiceProvider services)
+{
+    Console.WriteLine("Database Migration Status");
+    Console.WriteLine("=========================");
+    Console.WriteLine();
+
+    using var scope = services.CreateScope();
+    var migrationRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+
+    var applied = (await migrationRunner.GetAppliedMigrationsAsync()).ToList();
+    var pending = (await migrationRunner.GetPendingMigrationsAsync()).ToList();
+
+    Console.WriteLine($"Applied Migrations ({applied.Count}):");
+    if (applied.Any())
+    {
+        foreach (var migration in applied.OrderBy(m => m.Version))
+        {
+            Console.WriteLine($"  [{migration.Version}] {migration.Description}");
+            Console.WriteLine($"           Applied: {migration.AppliedAt:yyyy-MM-dd HH:mm:ss}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("  (none)");
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"Pending Migrations ({pending.Count}):");
+    if (pending.Any())
+    {
+        foreach (var migration in pending.OrderBy(m => m.Version))
+        {
+            Console.WriteLine($"  [{migration.Version}] {migration.Description}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("  (none)");
+    }
+}
+
+static async Task RollbackMigrationCommand(IServiceProvider services)
+{
+    Console.WriteLine("Rolling back last migration...");
+    Console.WriteLine();
+
+    using var scope = services.CreateScope();
+    var migrationRunner = scope.ServiceProvider.GetRequiredService<IMigrationRunner>();
+
+    var applied = (await migrationRunner.GetAppliedMigrationsAsync()).ToList();
+    if (!applied.Any())
+    {
+        Console.WriteLine("No migrations to rollback.");
+        return;
+    }
+
+    var lastMigration = applied.OrderByDescending(m => m.Version).First();
+    Console.WriteLine($"Rolling back: [{lastMigration.Version}] {lastMigration.Description}");
+    Console.Write("Are you sure? (y/N): ");
+
+    var response = Console.ReadLine();
+    if (!string.Equals(response, "y", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine("Rollback cancelled.");
+        return;
+    }
+
+    var result = await migrationRunner.RollbackLastMigrationAsync();
+
+    if (result.Success)
+    {
+        Console.WriteLine($"Successfully rolled back migration {lastMigration.Version}");
+    }
+    else
+    {
+        Console.WriteLine($"Rollback failed: {result.ErrorMessage}");
+        Environment.Exit(1);
+    }
+}
+
 static void ShowHelp()
 {
     Console.WriteLine("Net Worth Tracker - Administrative Commands");
@@ -456,6 +582,12 @@ static void ShowHelp()
     Console.WriteLine("  --make-admin <email>                     Grant admin access to a user");
     Console.WriteLine("  --revoke-admin <email>                   Revoke admin access from a user");
     Console.WriteLine("  --list-users                             List all registered users");
+    Console.WriteLine();
+    Console.WriteLine("Migration Commands:");
+    Console.WriteLine("  --migrate                                Run all pending database migrations");
+    Console.WriteLine("  --migrate-status                         Show migration status");
+    Console.WriteLine("  --migrate-rollback                       Rollback the last migration");
+    Console.WriteLine();
     Console.WriteLine("  --help, -h                               Show this help message");
     Console.WriteLine();
     Console.WriteLine("Examples:");
@@ -463,8 +595,10 @@ static void ShowHelp()
     Console.WriteLine("  dotnet NetWorthTracker.Web.dll --make-admin admin@example.com");
     Console.WriteLine("  dotnet NetWorthTracker.Web.dll --revoke-admin user@example.com");
     Console.WriteLine("  dotnet NetWorthTracker.Web.dll --list-users");
+    Console.WriteLine("  dotnet NetWorthTracker.Web.dll --migrate");
+    Console.WriteLine("  dotnet NetWorthTracker.Web.dll --migrate-status");
     Console.WriteLine();
     Console.WriteLine("Docker usage:");
     Console.WriteLine("  docker exec -it <container> dotnet NetWorthTracker.Web.dll --make-admin admin@example.com");
-    Console.WriteLine("  docker exec -it <container> dotnet NetWorthTracker.Web.dll --reset-password user@example.com NewPass123");
+    Console.WriteLine("  docker exec -it <container> dotnet NetWorthTracker.Web.dll --migrate");
 }

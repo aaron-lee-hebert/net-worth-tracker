@@ -10,7 +10,7 @@
 
 <!-- Summary Cards -->
 <div class="row mb-4">
-    <div class="col-lg-3 col-md-6 mb-3">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card h-100" style="border-left: 4px solid var(--color-primary);">
             <div class="card-body">
                 <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Total Users</h6>
@@ -21,30 +21,21 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6 mb-3">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card h-100" style="border-left: 4px solid var(--color-success);">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Active Subscriptions</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);">@Model.ActiveSubscriptions</h2>
-                <small class="text-muted">Paid users</small>
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">New Users (This Month)</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);">@Model.NewUsersThisMonth</h2>
+                <small class="text-muted">vs @Model.NewUsersLastMonth last month</small>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-md-6 mb-3">
+    <div class="col-lg-4 col-md-6 mb-3">
         <div class="card h-100" style="border-left: 4px solid var(--color-info);">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Trial Users</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-info);">@Model.TrialUsers</h2>
-                <small class="text-muted">In trial period</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--color-danger);">
-            <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Churn Rate</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-danger);">@Model.MonthlyChurnRate%</h2>
-                <small class="text-muted">@Model.ExpiredSubscriptions expired + @Model.CanceledSubscriptions canceled</small>
+                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">New Users (Last Month)</h6>
+                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-info);">@Model.NewUsersLastMonth</h2>
+                <small class="text-muted">Previous month signups</small>
             </div>
         </div>
     </div>
@@ -77,11 +68,8 @@
                     <a asp-action="AuditLogs" class="btn btn-outline-primary">
                         <i class="bi bi-journal-text me-2"></i>View Audit Logs
                     </a>
-                    <a asp-action="Subscriptions" class="btn btn-outline-primary">
-                        <i class="bi bi-credit-card me-2"></i>View Subscriptions
-                    </a>
-                    <a asp-action="Analytics" class="btn btn-outline-primary">
-                        <i class="bi bi-graph-up me-2"></i>Subscription Analytics
+                    <a asp-action="Health" class="btn btn-outline-primary">
+                        <i class="bi bi-heart-pulse me-2"></i>System Health
                     </a>
                 </div>
             </div>
@@ -102,7 +90,7 @@
                     <tr>
                         <th>User</th>
                         <th>Joined</th>
-                        <th>Status</th>
+                        <th>Email Verified</th>
                         <th>Admin</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -117,26 +105,13 @@
                             </td>
                             <td>@TimeZone.ToUserTime(user.CreatedAt).ToString("MMM d, yyyy")</td>
                             <td>
-                                @if (user.SubscriptionStatus.HasValue)
+                                @if (user.EmailConfirmed)
                                 {
-                                    var badgeClass = user.SubscriptionStatus.Value switch
-                                    {
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Active => "bg-success",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Trialing => "bg-info",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.PastDue => "bg-warning",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Canceled => "bg-secondary",
-                                        NetWorthTracker.Core.Entities.SubscriptionStatus.Expired => "bg-danger",
-                                        _ => "bg-secondary"
-                                    };
-                                    <span class="badge @badgeClass">@user.SubscriptionStatus.Value</span>
-                                    @if (user.IsInTrial == true)
-                                    {
-                                        <small class="text-muted ms-1">(@user.TrialDaysRemaining days left)</small>
-                                    }
+                                    <span class="badge bg-success">Verified</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary">No subscription</span>
+                                    <span class="badge bg-warning text-dark">Pending</span>
                                 }
                             </td>
                             <td>

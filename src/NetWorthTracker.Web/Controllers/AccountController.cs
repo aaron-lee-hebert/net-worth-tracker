@@ -1,8 +1,6 @@
-using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using NetWorthTracker.Core;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.Interfaces;
@@ -41,7 +39,6 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
@@ -288,7 +285,6 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (!ModelState.IsValid)
@@ -351,6 +347,7 @@ public class AccountController : Controller
             user.EmailConfirmed = true;
             await _userManager.UpdateAsync(user);
             await _signInManager.SignInAsync(user, isPersistent: false);
+
             return RedirectToAction("Index", "Dashboard");
         }
 
@@ -457,7 +454,6 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("password-reset")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
     {
         if (!_emailService.IsConfigured)
@@ -522,7 +518,6 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [EnableRateLimiting("password-reset")]
     public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
     {
         if (!ModelState.IsValid)
@@ -576,13 +571,6 @@ public class AccountController : Controller
     public IActionResult AccessDenied()
     {
         return View();
-    }
-
-    private static IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup> GetTimeZoneGroups()
-    {
-        return SupportedTimeZones.TimeZoneGroups.Keys
-            .Select(g => new Microsoft.AspNetCore.Mvc.Rendering.SelectListGroup { Name = g })
-            .ToList();
     }
 
     private static IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> GetTimeZoneSelectList(string selectedTimeZone)

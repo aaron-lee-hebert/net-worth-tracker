@@ -32,7 +32,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> DownloadCsv()
+        public async Task<IActionResult> DownloadCsv()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
         var result = await _exportService.ExportQuarterlyReportCsvAsync(userId);
@@ -46,7 +46,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> DownloadNetWorthHistoryCsv()
+        public async Task<IActionResult> DownloadNetWorthHistoryCsv()
     {
         var userId = Guid.Parse(_userManager.GetUserId(User)!);
         var result = await _exportService.ExportNetWorthHistoryCsvAsync(userId);

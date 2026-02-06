@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using NetWorthTracker.Application.Interfaces;
 using NetWorthTracker.Core.Entities;
 using NetWorthTracker.Core.ViewModels;
@@ -14,11 +15,16 @@ public class AdminController : Controller
 {
     private readonly IAdminService _adminService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly HealthCheckService _healthCheckService;
 
-    public AdminController(IAdminService adminService, UserManager<ApplicationUser> userManager)
+    public AdminController(
+        IAdminService adminService,
+        UserManager<ApplicationUser> userManager,
+        HealthCheckService healthCheckService)
     {
         _adminService = adminService;
         _userManager = userManager;
+        _healthCheckService = healthCheckService;
     }
 
     // GET: /Admin
@@ -119,18 +125,39 @@ public class AdminController : Controller
         return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
     }
 
-    // GET: /Admin/Subscriptions
-    public async Task<IActionResult> Subscriptions(int page = 1, SubscriptionStatus? status = null)
+    // GET: /Admin/Health
+    public async Task<IActionResult> Health()
     {
-        var result = await _adminService.GetSubscriptionsAsync(page, 20, status);
-        ViewBag.StatusFilter = status;
-        return View(result);
+        var report = await _healthCheckService.CheckHealthAsync();
+
+        var viewModel = new HealthDashboardViewModel
+        {
+            OverallStatus = report.Status.ToString(),
+            CheckedAt = DateTime.UtcNow,
+            Checks = report.Entries.Select(entry => new HealthCheckViewModel
+            {
+                Name = entry.Key,
+                Status = entry.Value.Status.ToString(),
+                Description = entry.Value.Description ?? GetDefaultDescription(entry.Value.Status),
+                Duration = entry.Value.Duration,
+                Exception = entry.Value.Exception?.Message,
+                Data = entry.Value.Data.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? "null")
+            }).ToList()
+        };
+
+        return View(viewModel);
     }
 
-    // GET: /Admin/Analytics
-    public async Task<IActionResult> Analytics()
+    private static string GetDefaultDescription(HealthStatus status)
     {
-        var analytics = await _adminService.GetSubscriptionAnalyticsAsync();
-        return View(analytics);
+        return status switch
+        {
+            HealthStatus.Healthy => "Operating normally",
+            HealthStatus.Degraded => "Operating with reduced performance",
+            HealthStatus.Unhealthy => "Not operating correctly",
+            _ => "Unknown status"
+        };
     }
 }

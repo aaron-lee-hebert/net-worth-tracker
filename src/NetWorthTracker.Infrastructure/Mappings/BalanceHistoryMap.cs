@@ -17,6 +17,8 @@ public class BalanceHistoryMap : ClassMap<BalanceHistory>
         Map(x => x.Notes).Length(1000);
         Map(x => x.CreatedAt).CustomType<PostgresTimestampType>().Not.Nullable();
         Map(x => x.UpdatedAt).CustomType<PostgresNullableTimestampType>();
+        Map(x => x.IsDeleted).Not.Nullable().Default("0");
+        Map(x => x.DeletedAt).CustomType<PostgresNullableTimestampType>();
 
         Map(x => x.AccountId).Not.Nullable();
         References(x => x.Account)

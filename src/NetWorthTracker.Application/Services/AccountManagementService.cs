@@ -11,15 +11,18 @@ public class AccountManagementService : IAccountManagementService
     private readonly IAccountRepository _accountRepository;
     private readonly IBalanceHistoryRepository _balanceHistoryRepository;
     private readonly IAuditService _auditService;
+    private readonly IEncryptionService _encryptionService;
 
     public AccountManagementService(
         IAccountRepository accountRepository,
         IBalanceHistoryRepository balanceHistoryRepository,
-        IAuditService auditService)
+        IAuditService auditService,
+        IEncryptionService encryptionService)
     {
         _accountRepository = accountRepository;
         _balanceHistoryRepository = balanceHistoryRepository;
         _auditService = auditService;
+        _encryptionService = encryptionService;
     }
 
     public async Task<IReadOnlyList<AccountViewModel>> GetAccountsAsync(Guid userId, AccountCategory? category = null)
@@ -36,7 +39,7 @@ public class AccountManagementService : IAccountManagementService
             AccountType = a.AccountType,
             CurrentBalance = a.CurrentBalance,
             Institution = a.Institution,
-            AccountNumber = a.AccountNumber,
+            AccountNumber = _encryptionService.Decrypt(a.AccountNumber),
             IsActive = a.IsActive
         }).ToList();
     }
@@ -62,7 +65,7 @@ public class AccountManagementService : IAccountManagementService
                 AccountType = account.AccountType,
                 CurrentBalance = account.CurrentBalance,
                 Institution = account.Institution,
-                AccountNumber = account.AccountNumber,
+                AccountNumber = _encryptionService.Decrypt(account.AccountNumber),
                 IsActive = account.IsActive
             },
             BalanceHistory = balanceHistory.Select(b => new BalanceHistoryViewModel
@@ -88,7 +91,7 @@ public class AccountManagementService : IAccountManagementService
             AccountType = model.AccountType,
             CurrentBalance = model.CurrentBalance,
             Institution = model.Institution,
-            AccountNumber = model.AccountNumber,
+            AccountNumber = _encryptionService.Encrypt(model.AccountNumber),
             UserId = userId,
             IsActive = true
         };
@@ -144,7 +147,7 @@ public class AccountManagementService : IAccountManagementService
         account.AccountType = model.AccountType;
         account.CurrentBalance = model.CurrentBalance;
         account.Institution = model.Institution;
-        account.AccountNumber = model.AccountNumber;
+        account.AccountNumber = _encryptionService.Encrypt(model.AccountNumber);
         account.IsActive = model.IsActive;
 
         await _accountRepository.UpdateAsync(account);
@@ -184,12 +187,21 @@ public class AccountManagementService : IAccountManagementService
             return ServiceResult.NotFound();
         }
 
-        // Capture for audit before delete
+        // Skip if already deleted
+        if (account.IsDeleted)
+        {
+            return ServiceResult.NotFound();
+        }
+
+        // Capture for audit before soft delete
         var accountName = account.Name;
         var accountType = account.AccountType;
         var accountBalance = account.CurrentBalance;
 
-        await _accountRepository.DeleteAsync(account);
+        // Soft delete the account
+        account.IsDeleted = true;
+        account.DeletedAt = DateTime.UtcNow;
+        await _accountRepository.UpdateAsync(account);
 
         // Audit log - account deleted
         await _auditService.LogEntityActionAsync(

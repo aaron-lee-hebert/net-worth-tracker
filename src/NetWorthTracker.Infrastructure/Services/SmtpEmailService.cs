@@ -1,0 +1,163 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NetWorthTracker.Core.Services;
+using MailKit.Net.Smtp;
+using MimeKit;
+
+namespace NetWorthTracker.Infrastructure.Services;
+
+public class SmtpSettings
+{
+    public bool Enabled { get; set; } = false;
+    public string Host { get; set; } = string.Empty;
+    public int Port { get; set; } = 587;
+    public bool UseSsl { get; set; } = true;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FromEmail { get; set; } = string.Empty;
+    public string FromName { get; set; } = "Net Worth Tracker";
+}
+
+public class SmtpEmailService : IEmailService
+{
+    private readonly SmtpSettings _settings;
+    private readonly ILogger<SmtpEmailService> _logger;
+
+    public SmtpEmailService(
+        IOptions<SmtpSettings> settings,
+        ILogger<SmtpEmailService> logger)
+    {
+        _settings = settings.Value;
+        _logger = logger;
+    }
+
+    public bool IsConfigured => _settings.Enabled &&
+                                !string.IsNullOrEmpty(_settings.Host) &&
+                                !string.IsNullOrEmpty(_settings.FromEmail);
+
+    public async Task SendEmailAsync(string to, string subject, string htmlBody)
+    {
+        if (!IsConfigured)
+        {
+            _logger.LogWarning("SMTP not configured. Would have sent email to {To} with subject: {Subject}", to, subject);
+            return;
+        }
+
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+            message.To.Add(new MailboxAddress(null, to));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = htmlBody
+            };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+
+            await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl);
+
+            if (!string.IsNullOrEmpty(_settings.Username) && !string.IsNullOrEmpty(_settings.Password))
+            {
+                await client.AuthenticateAsync(_settings.Username, _settings.Password);
+            }
+
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation("Email sent successfully to {To}", to);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email to {To}", to);
+            throw;
+        }
+    }
+
+    public async Task SendEmailVerificationAsync(string to, string verificationLink)
+    {
+        var subject = "Verify your email address - Net Worth Tracker";
+        var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #1a3c34; color: #d4a843; padding: 20px; text-align: center; }}
+        .content {{ padding: 30px 20px; background-color: #faf8f5; }}
+        .button {{ display: inline-block; background-color: #1a3c34; color: #d4a843; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; }}
+        .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Net Worth Tracker</h1>
+        </div>
+        <div class='content'>
+            <h2>Verify Your Email Address</h2>
+            <p>Thank you for registering with Net Worth Tracker. Please click the button below to verify your email address and activate your account.</p>
+            <p style='text-align: center;'>
+                <a href='{verificationLink}' class='button'>Verify Email Address</a>
+            </p>
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style='word-break: break-all; font-size: 14px;'>{verificationLink}</p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you didn't create an account with Net Worth Tracker, you can safely ignore this email.</p>
+        </div>
+        <div class='footer'>
+            <p>This is an automated message from Net Worth Tracker.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+        await SendEmailAsync(to, subject, body);
+    }
+
+    public async Task SendPasswordResetAsync(string to, string resetLink)
+    {
+        var subject = "Reset your password - Net Worth Tracker";
+        var body = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background-color: #1a3c34; color: #d4a843; padding: 20px; text-align: center; }}
+        .content {{ padding: 30px 20px; background-color: #faf8f5; }}
+        .button {{ display: inline-block; background-color: #1a3c34; color: #d4a843; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; }}
+        .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Net Worth Tracker</h1>
+        </div>
+        <div class='content'>
+            <h2>Reset Your Password</h2>
+            <p>We received a request to reset the password for your Net Worth Tracker account. Click the button below to create a new password.</p>
+            <p style='text-align: center;'>
+                <a href='{resetLink}' class='button'>Reset Password</a>
+            </p>
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style='word-break: break-all; font-size: 14px;'>{resetLink}</p>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+        </div>
+        <div class='footer'>
+            <p>This is an automated message from Net Worth Tracker.</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+        await SendEmailAsync(to, subject, body);
+    }
+}

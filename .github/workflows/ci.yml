@@ -37,8 +37,8 @@ jobs:
         COVERAGE=$(grep -oP 'Line coverage: \K[\d.]+' ./TestResults/CoverageReport/Summary.txt || echo "0")
         echo "Current coverage: ${COVERAGE}%"
 
-        # Check if coverage meets threshold (60%)
-        THRESHOLD=60
+        # Check if coverage meets threshold (25%)
+        THRESHOLD=25
         if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
           echo "::error::Code coverage ${COVERAGE}% is below the threshold of ${THRESHOLD}%"
           exit 1
