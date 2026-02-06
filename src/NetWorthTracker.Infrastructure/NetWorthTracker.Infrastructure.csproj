@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.Sinks.File" VersionOverride="7.0.0" />
     <ProjectReference Include="..\NetWorthTracker.Core\NetWorthTracker.Core.csproj" />
     <ProjectReference Include="..\NetWorthTracker.Application\NetWorthTracker.Application.csproj" />
   </ItemGroup>
