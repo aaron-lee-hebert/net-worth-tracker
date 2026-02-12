@@ -236,16 +236,17 @@
             const result = await response.json();
 
             if (result.success) {
-                // Close modal and refresh dashboard via AJAX
+                // Close modal, notify user, and refresh dashboard via AJAX
                 const modal = bootstrap.Modal.getInstance(document.getElementById('bulkUpdateModal'));
                 modal.hide();
+                window.showToast('Balances updated successfully.', 'success');
                 await refreshDashboard();
             } else {
                 throw new Error(result.message || 'Failed to save changes');
             }
         } catch (error) {
             console.error('Error saving changes:', error);
-            alert('Failed to save changes. Please try again.');
+            window.showToast('Failed to save changes. Please try again.', 'danger');
             saveBtn.disabled = false;
             saveBtn.innerHTML = originalText;
         }
