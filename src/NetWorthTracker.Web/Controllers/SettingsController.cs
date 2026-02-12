@@ -21,6 +21,7 @@ public class SettingsController : Controller
     private readonly IEmailService _emailService;
     private readonly IAuditService _auditService;
     private readonly IDataExportService _dataExportService;
+    private readonly ISubscriptionService _subscriptionService;
     private readonly ILogger<SettingsController> _logger;
 
     public SettingsController(
@@ -32,6 +33,7 @@ public class SettingsController : Controller
         IEmailService emailService,
         IAuditService auditService,
         IDataExportService dataExportService,
+        ISubscriptionService subscriptionService,
         ILogger<SettingsController> logger)
     {
         _userManager = userManager;
@@ -42,6 +44,7 @@ public class SettingsController : Controller
         _emailService = emailService;
         _auditService = auditService;
         _dataExportService = dataExportService;
+        _subscriptionService = subscriptionService;
         _logger = logger;
     }
 
@@ -166,6 +169,9 @@ public class SettingsController : Controller
                 }
                 await _accountRepository.DeleteAsync(account);
             }
+
+            // Cancel any active subscription
+            await _subscriptionService.CancelByUserIdAsync(user.Id);
 
             // Audit log - account deleted (capture before sign out)
             var userEmail = user.Email;

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using NetWorthTracker.Core.Entities;
+using NetWorthTracker.Core.Enums;
 using NetWorthTracker.Core.Interfaces;
 using NetWorthTracker.Core.Services;
 using NetWorthTracker.Infrastructure.Data;
@@ -35,9 +36,27 @@ public static class DependencyInjection
         services.AddScoped<IBalanceHistoryRepository, BalanceHistoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
 
-        // Email service (SMTP)
-        services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        // App settings
+        services.Configure<AppSettings>(configuration.GetSection("App"));
+
+        // Email service - conditional based on app mode
+        var appMode = configuration.GetValue<AppMode>("App:AppMode");
+        if (appMode == AppMode.Saas)
+        {
+            services.Configure<SendGridSettings>(configuration.GetSection("SendGrid"));
+            services.AddHttpClient<IEmailService, SendGridEmailService>();
+        }
+        else
+        {
+            services.Configure<SmtpSettings>(configuration.GetSection("Smtp"));
+            services.AddScoped<IEmailService, SmtpEmailService>();
+        }
+
+        // Stripe settings (for SaaS mode)
+        services.Configure<StripeSettings>(configuration.GetSection("Stripe"));
+
+        // Subscription service
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
 
         // Alert repositories and service
         services.AddScoped<IAlertConfigurationRepository, AlertConfigurationRepository>();
