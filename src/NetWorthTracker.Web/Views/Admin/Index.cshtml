@@ -11,10 +11,10 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-lg-4 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--color-primary);">
+        <div class="card h-100 card-border-primary">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">Total Users</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-primary);">@Model.TotalUsers</h2>
+                <h6 class="stat-label mb-2">Total Users</h6>
+                <h2 class="mb-0 stat-value">@Model.TotalUsers</h2>
                 <small class="text-muted">
                     <span class="text-success">+@Model.NewUsersThisMonth</span> this month
                 </small>
@@ -22,19 +22,19 @@
         </div>
     </div>
     <div class="col-lg-4 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--color-success);">
+        <div class="card h-100 card-border-success">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">New Users (This Month)</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-success);">@Model.NewUsersThisMonth</h2>
+                <h6 class="stat-label mb-2">New Users (This Month)</h6>
+                <h2 class="mb-0 stat-value text-asset">@Model.NewUsersThisMonth</h2>
                 <small class="text-muted">vs @Model.NewUsersLastMonth last month</small>
             </div>
         </div>
     </div>
     <div class="col-lg-4 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid var(--color-info);">
+        <div class="card h-100 card-border-info">
             <div class="card-body">
-                <h6 class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em;">New Users (Last Month)</h6>
-                <h2 class="mb-0" style="font-family: var(--font-serif); color: var(--color-info);">@Model.NewUsersLastMonth</h2>
+                <h6 class="stat-label mb-2">New Users (Last Month)</h6>
+                <h2 class="mb-0 stat-value text-info">@Model.NewUsersLastMonth</h2>
                 <small class="text-muted">Previous month signups</small>
             </div>
         </div>

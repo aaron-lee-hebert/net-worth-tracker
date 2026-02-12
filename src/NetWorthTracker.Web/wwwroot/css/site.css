@@ -661,9 +661,9 @@ a:hover {
 }
 
 .stat-label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: var(--color-text-muted);
     margin-top: var(--spacing-xs);
 }
@@ -788,6 +788,39 @@ a:hover {
 
 .font-serif {
     font-family: var(--font-serif) !important;
+}
+
+/* Summary card left-border accents */
+.card-border-accent {
+    border-left: 4px solid var(--color-accent);
+}
+
+.card-border-primary {
+    border-left: 4px solid var(--color-primary);
+}
+
+.card-border-success {
+    border-left: 4px solid var(--color-success);
+}
+
+.card-border-danger {
+    border-left: 4px solid var(--color-danger);
+}
+
+.card-border-info {
+    border-left: 4px solid var(--color-info);
+}
+
+/* Card with accent outline (onboarding, featured) */
+.card-featured {
+    border: 2px solid var(--color-accent);
+}
+
+/* Constrained centered text block */
+.text-narrow {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Divider with classic styling */
