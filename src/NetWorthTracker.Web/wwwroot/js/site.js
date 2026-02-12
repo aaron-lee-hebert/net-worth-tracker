@@ -89,5 +89,78 @@
                 });
             }
         });
+
+        // =====================================================================
+        // Password Visibility Toggle
+        // Any input-group with a [data-toggle-password] button will toggle
+        // the sibling password input between password/text.
+        // =====================================================================
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-toggle-password]');
+            if (!btn) return;
+
+            var group = btn.closest('.input-group');
+            if (!group) return;
+
+            var input = group.querySelector('input[type="password"], input[data-password-field]');
+            if (!input) return;
+
+            var isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+
+            if (isPassword) {
+                input.setAttribute('data-password-field', 'true');
+            }
+
+            var icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+        });
+
+        // =====================================================================
+        // Password Strength Meter
+        // Inputs with data-password-strength will show a strength indicator
+        // below their parent .mb-3 container.
+        // =====================================================================
+        document.querySelectorAll('[data-password-strength]').forEach(function (input) {
+            var container = input.closest('.mb-3');
+            if (!container) return;
+
+            var meter = document.createElement('div');
+            meter.className = 'password-strength mt-1';
+            meter.innerHTML =
+                '<div class="progress" style="height: 4px;">' +
+                    '<div class="progress-bar" role="progressbar" style="width: 0%;"></div>' +
+                '</div>' +
+                '<small class="password-strength-text text-muted"></small>';
+            container.appendChild(meter);
+
+            input.addEventListener('input', function () {
+                var val = input.value;
+                var score = 0;
+                if (val.length >= 8) score++;
+                if (val.length >= 12) score++;
+                if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
+                if (/\d/.test(val)) score++;
+                if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+                var bar = meter.querySelector('.progress-bar');
+                var text = meter.querySelector('.password-strength-text');
+                var levels = [
+                    { width: '0%', cls: '', label: '' },
+                    { width: '20%', cls: 'bg-danger', label: 'Weak' },
+                    { width: '40%', cls: 'bg-danger', label: 'Weak' },
+                    { width: '60%', cls: 'bg-warning', label: 'Fair' },
+                    { width: '80%', cls: 'bg-info', label: 'Good' },
+                    { width: '100%', cls: 'bg-success', label: 'Strong' }
+                ];
+
+                var level = val.length === 0 ? levels[0] : levels[Math.min(score, 5)];
+                bar.style.width = level.width;
+                bar.className = 'progress-bar ' + level.cls;
+                text.textContent = level.label;
+            });
+        });
     });
 })();
