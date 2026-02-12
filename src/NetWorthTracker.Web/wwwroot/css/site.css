@@ -89,6 +89,26 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Skip to content link - visible only on focus for keyboard users */
+.skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.skip-to-content:focus {
+    top: var(--spacing-sm);
+    color: var(--color-text-inverse);
+}
+
 /* ==========================================================================
    Typography
    ========================================================================== */
