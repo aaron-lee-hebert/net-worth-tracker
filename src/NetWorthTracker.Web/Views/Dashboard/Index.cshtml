@@ -220,7 +220,7 @@ else
                 @if (Model.RecentAccounts.Any())
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="recentAccountsTable">
+                        <table class="table table-hover table-card-mobile mb-0" id="recentAccountsTable">
                             <thead>
                                 <tr>
                                     <th>Account</th>
@@ -234,14 +234,14 @@ else
                                 @foreach (var account in Model.RecentAccounts)
                                 {
                                     <tr>
-                                        <td>@account.Name</td>
-                                        <td>
+                                        <td data-label="Account">@account.Name</td>
+                                        <td data-label="Type">
                                             <span class="badge @GetAccountTypeBadgeClass(account.AccountType)">
                                                 @account.AccountType.GetDisplayName()
                                             </span>
                                         </td>
-                                        <td>@(account.Institution ?? "-")</td>
-                                        <td class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
+                                        <td data-label="Institution">@(account.Institution ?? "-")</td>
+                                        <td data-label="Balance" class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
                                             @account.CurrentBalance.ToString("C")
                                         </td>
                                         <td class="text-end">
