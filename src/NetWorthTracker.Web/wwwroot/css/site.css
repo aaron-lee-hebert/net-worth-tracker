@@ -533,6 +533,27 @@ h4, .h4 { font-size: 1.125rem; }
 }
 
 /* ==========================================================================
+   Breadcrumbs
+   ========================================================================== */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.85rem;
+}
+
+.breadcrumb-item a {
+    color: var(--color-text-muted);
+}
+
+.breadcrumb-item a:hover {
+    color: var(--color-primary);
+}
+
+.breadcrumb-item.active {
+    color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
    Nav Tabs (Settings)
    ========================================================================== */
 .nav-tabs {
