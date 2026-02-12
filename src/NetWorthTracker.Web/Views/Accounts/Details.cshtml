@@ -183,12 +183,12 @@
                                         <td>@(history.Notes ?? "-")</td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-outline-primary me-1"
-                                                    onclick="openEditModal('@history.Id')" title="Edit">
+                                                    onclick="openEditModal('@history.Id')" title="Edit" aria-label="Edit balance entry">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-danger"
                                                     onclick="openDeleteModal('@history.Id', '@history.RecordedAt.ToString("MMM dd, yyyy")', '@history.Balance.ToString("C")')"
-                                                    title="Delete">
+                                                    title="Delete" aria-label="Delete balance entry">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
