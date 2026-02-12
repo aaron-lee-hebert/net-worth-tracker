@@ -533,6 +533,35 @@ h4, .h4 { font-size: 1.125rem; }
 }
 
 /* ==========================================================================
+   Nav Tabs (Settings)
+   ========================================================================== */
+.nav-tabs {
+    border-bottom-color: var(--color-border);
+}
+
+.nav-tabs .nav-link {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: var(--spacing-sm) var(--spacing-lg);
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--color-primary);
+    border-color: transparent;
+    border-bottom-color: var(--color-border-dark);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--color-primary);
+    background-color: transparent;
+    border-color: transparent;
+    border-bottom-color: var(--color-accent);
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 .footer {

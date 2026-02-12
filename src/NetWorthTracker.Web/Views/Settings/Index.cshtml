@@ -26,215 +26,239 @@
     </div>
 }
 
-<div class="row">
-    <!-- Profile Section -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Profile</h5>
-            </div>
-            <div class="card-body">
-                <form asp-action="UpdateProfile" method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" value="@Model.Email" disabled />
-                        <small class="text-muted">Email cannot be changed</small>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">First Name</label>
-                            <input type="text" name="firstName" class="form-control" value="@Model.FirstName" placeholder="Enter your first name" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Last Name</label>
-                            <input type="text" name="lastName" class="form-control" value="@Model.LastName" placeholder="Enter your last name" />
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Region</label>
-                        <select name="locale" class="form-select" asp-items="@(ViewBag.SupportedLocales as IEnumerable<SelectListItem>)"></select>
-                        <small class="text-muted">
-                            Determines date, number, and currency formatting.
-                        </small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Time Zone</label>
-                        <select name="timeZone" class="form-select" asp-items="@(ViewBag.SupportedTimeZones as IEnumerable<SelectListItem>)"></select>
-                        <small class="text-muted">
-                            Used for displaying timestamps in your local time.
-                        </small>
-                    </div>
-                    <small class="text-muted d-block mb-3">
-                        Your name will be displayed in the navigation bar.
-                    </small>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Password Section -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Change Password</h5>
-            </div>
-            <div class="card-body">
-                <form asp-action="ChangePassword" method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Current Password</label>
-                        <input type="password" name="currentPassword" class="form-control" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">New Password</label>
-                        <input type="password" name="newPassword" class="form-control" minlength="8" required />
-                        <small class="text-muted">Must be at least 8 characters</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Confirm New Password</label>
-                        <input type="password" name="confirmPassword" class="form-control" minlength="8" required />
-                    </div>
-                    <button type="submit" class="btn btn-primary">Change Password</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @{
     var alertConfig = ViewBag.AlertConfig as NetWorthTracker.Core.Entities.AlertConfiguration;
     var emailConfigured = ViewBag.EmailConfigured as bool? ?? false;
+    var activeTab = TempData["ActiveTab"]?.ToString() ?? "profile";
 }
 
-<!-- Notifications Section -->
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Notifications</h5>
-            </div>
-            <div class="card-body">
-                @if (!emailConfigured)
-                {
-                    <div class="alert alert-info">
-                        <small>Email notifications are not available because SMTP is not configured for this instance.</small>
+<ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "profile" ? "active" : "")" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane" type="button" role="tab" aria-controls="profile-pane" aria-selected="@(activeTab == "profile" ? "true" : "false")">Profile</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "security" ? "active" : "")" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-pane" type="button" role="tab" aria-controls="security-pane" aria-selected="@(activeTab == "security" ? "true" : "false")">Security</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "notifications" ? "active" : "")" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-pane" type="button" role="tab" aria-controls="notifications-pane" aria-selected="@(activeTab == "notifications" ? "true" : "false")">Notifications</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "data" ? "active" : "")" id="data-tab" data-bs-toggle="tab" data-bs-target="#data-pane" type="button" role="tab" aria-controls="data-pane" aria-selected="@(activeTab == "data" ? "true" : "false")">Data &amp; Privacy</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="settingsTabContent">
+    <!-- Profile Tab -->
+    <div class="tab-pane fade @(activeTab == "profile" ? "show active" : "")" id="profile-pane" role="tabpanel" aria-labelledby="profile-tab">
+        <div class="row">
+            <div class="col-lg-8 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Profile Information</h5>
                     </div>
-                }
-                else if (alertConfig != null)
-                {
-                    <form asp-action="UpdateAlertSettings" method="post">
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="alertsEnabled" name="alertsEnabled" value="true" @(alertConfig.AlertsEnabled ? "checked" : "") />
-                                <label class="form-check-label" for="alertsEnabled">Enable notifications</label>
+                    <div class="card-body">
+                        <form asp-action="UpdateProfile" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" value="@Model.Email" disabled />
+                                <small class="text-muted">Email cannot be changed</small>
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Net worth change alert</label>
-                            <div class="input-group">
-                                <input type="number" name="netWorthChangeThreshold" class="form-control" value="@alertConfig.NetWorthChangeThreshold" min="0" max="100" step="1" />
-                                <span class="input-group-text">%</span>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" name="firstName" class="form-control" value="@Model.FirstName" placeholder="Enter your first name" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" name="lastName" class="form-control" value="@Model.LastName" placeholder="Enter your last name" />
+                                </div>
                             </div>
-                            <small class="text-muted">Alert when net worth changes by this percentage. Set to 0 to disable.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Cash runway alert</label>
-                            <div class="input-group">
-                                <input type="number" name="cashRunwayMonths" class="form-control" value="@alertConfig.CashRunwayMonths" min="0" max="24" step="1" />
-                                <span class="input-group-text">months</span>
+                            <div class="mb-3">
+                                <label class="form-label">Region</label>
+                                <select name="locale" class="form-select" asp-items="@(ViewBag.SupportedLocales as IEnumerable<SelectListItem>)"></select>
+                                <small class="text-muted">
+                                    Determines date, number, and currency formatting.
+                                </small>
                             </div>
-                            <small class="text-muted">Alert when cash runway falls below this many months. Set to 0 to disable.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="monthlySnapshotEnabled" name="monthlySnapshotEnabled" value="true" @(alertConfig.MonthlySnapshotEnabled ? "checked" : "") />
-                                <label class="form-check-label" for="monthlySnapshotEnabled">Monthly snapshot email</label>
+                            <div class="mb-3">
+                                <label class="form-label">Time Zone</label>
+                                <select name="timeZone" class="form-select" asp-items="@(ViewBag.SupportedTimeZones as IEnumerable<SelectListItem>)"></select>
+                                <small class="text-muted">
+                                    Used for displaying timestamps in your local time.
+                                </small>
                             </div>
-                            <small class="text-muted">Receive a monthly summary of your financial progress.</small>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">Save Notification Settings</button>
-                    </form>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- MFA Section -->
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Multi-Factor Authentication</h5>
-            </div>
-            <div class="card-body">
-                @if (Model.TwoFactorEnabled)
-                {
-                    <div class="d-flex align-items-center mb-3">
-                        <span class="badge bg-success me-2">Enabled</span>
-                        <span class="text-muted">Your account is protected with MFA</span>
+                            <small class="text-muted d-block mb-3">
+                                Your name will be displayed in the navigation bar.
+                            </small>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
                     </div>
-                    <p class="text-muted small">
-                        Multi-factor authentication adds an extra layer of security by requiring a code from your authenticator app when signing in.
-                    </p>
-                    <a asp-action="SetupMfa" class="btn btn-outline-primary">Manage MFA</a>
-                }
-                else
-                {
-                    <div class="d-flex align-items-center mb-3">
-                        <span class="badge bg-warning text-dark me-2">Not Enabled</span>
-                        <span class="text-muted">Your account is not protected with MFA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Tab -->
+    <div class="tab-pane fade @(activeTab == "security" ? "show active" : "")" id="security-pane" role="tabpanel" aria-labelledby="security-tab">
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Change Password</h5>
                     </div>
-                    <p class="text-muted small">
-                        Multi-factor authentication adds an extra layer of security by requiring a code from your authenticator app when signing in.
-                    </p>
-                    <a asp-action="SetupMfa" class="btn btn-primary">Enable MFA</a>
-                }
+                    <div class="card-body">
+                        <form asp-action="ChangePassword" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" name="currentPassword" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Password</label>
+                                <input type="password" name="newPassword" class="form-control" minlength="8" required />
+                                <small class="text-muted">Must be at least 8 characters</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" name="confirmPassword" class="form-control" minlength="8" required />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Multi-Factor Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.TwoFactorEnabled)
+                        {
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-success me-2">Enabled</span>
+                                <span class="text-muted">Your account is protected with MFA</span>
+                            </div>
+                            <p class="text-muted small">
+                                Multi-factor authentication adds an extra layer of security by requiring a code from your authenticator app when signing in.
+                            </p>
+                            <a asp-action="SetupMfa" class="btn btn-outline-primary">Manage MFA</a>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-warning text-dark me-2">Not Enabled</span>
+                                <span class="text-muted">Your account is not protected with MFA</span>
+                            </div>
+                            <p class="text-muted small">
+                                Multi-factor authentication adds an extra layer of security by requiring a code from your authenticator app when signing in.
+                            </p>
+                            <a asp-action="SetupMfa" class="btn btn-primary">Enable MFA</a>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Export Your Data Section -->
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Export Your Data</h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted small">Download a copy of all your data. The export includes your profile, accounts, balance history, settings, and activity log.</p>
-                <form asp-action="ExportAllData" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-primary">Download My Data</button>
-                </form>
+    <!-- Notifications Tab -->
+    <div class="tab-pane fade @(activeTab == "notifications" ? "show active" : "")" id="notifications-pane" role="tabpanel" aria-labelledby="notifications-tab">
+        <div class="row">
+            <div class="col-lg-8 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Notification Preferences</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!emailConfigured)
+                        {
+                            <div class="alert alert-info">
+                                <small>Email notifications are not available because SMTP is not configured for this instance.</small>
+                            </div>
+                        }
+                        else if (alertConfig != null)
+                        {
+                            <form asp-action="UpdateAlertSettings" method="post">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="alertsEnabled" name="alertsEnabled" value="true" @(alertConfig.AlertsEnabled ? "checked" : "") />
+                                        <label class="form-check-label" for="alertsEnabled">Enable notifications</label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Net worth change alert</label>
+                                    <div class="input-group">
+                                        <input type="number" name="netWorthChangeThreshold" class="form-control" value="@alertConfig.NetWorthChangeThreshold" min="0" max="100" step="1" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <small class="text-muted">Alert when net worth changes by this percentage. Set to 0 to disable.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Cash runway alert</label>
+                                    <div class="input-group">
+                                        <input type="number" name="cashRunwayMonths" class="form-control" value="@alertConfig.CashRunwayMonths" min="0" max="24" step="1" />
+                                        <span class="input-group-text">months</span>
+                                    </div>
+                                    <small class="text-muted">Alert when cash runway falls below this many months. Set to 0 to disable.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="monthlySnapshotEnabled" name="monthlySnapshotEnabled" value="true" @(alertConfig.MonthlySnapshotEnabled ? "checked" : "") />
+                                        <label class="form-check-label" for="monthlySnapshotEnabled">Monthly snapshot email</label>
+                                    </div>
+                                    <small class="text-muted">Receive a monthly summary of your financial progress.</small>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+                            </form>
+                        }
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card border-warning">
-            <div class="card-header bg-warning bg-opacity-10">
-                <h5 class="mb-0">Data Management</h5>
-            </div>
-            <div class="card-body">
-                <p>Delete all your financial data (accounts and balance history). This action cannot be undone.</p>
-                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#deleteDataModal">Delete All Data</button>
+    <!-- Data & Privacy Tab -->
+    <div class="tab-pane fade @(activeTab == "data" ? "show active" : "")" id="data-pane" role="tabpanel" aria-labelledby="data-tab">
+        <div class="row">
+            <div class="col-lg-8 col-xl-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Export Your Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Download a copy of all your data. The export includes your profile, accounts, balance history, settings, and activity log.</p>
+                        <form asp-action="ExportAllData" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-primary">Download My Data</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-    <div class="col-lg-6 mb-4">
-        <div class="card border-danger">
-            <div class="card-header bg-danger bg-opacity-10">
-                <h5 class="mb-0">Delete Account</h5>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning bg-opacity-10">
+                        <h5 class="mb-0">Data Management</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Delete all your financial data (accounts and balance history). This action cannot be undone.</p>
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#deleteDataModal">Delete All Data</button>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Delete Account</button>
+            <div class="col-lg-6 mb-4">
+                <div class="card border-danger">
+                    <div class="card-header bg-danger bg-opacity-10">
+                        <h5 class="mb-0">Delete Account</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">Delete Account</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
