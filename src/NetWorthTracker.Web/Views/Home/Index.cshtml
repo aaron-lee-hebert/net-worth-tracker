@@ -42,6 +42,73 @@
     }
 </div>
 
+<!-- App Preview -->
+@if (!SignInManager.IsSignedIn(User))
+{
+<div class="mt-5 mb-5">
+    <h3 class="text-center mb-4">See Your Finances at a Glance</h3>
+    <div class="card shadow-lg mx-auto" style="max-width: 900px; overflow: hidden;">
+        <div class="card-body p-0">
+            <!-- Mock nav bar -->
+            <div class="d-flex align-items-center px-3 py-2" style="background-color: var(--color-primary);">
+                <span class="text-light fw-bold small">Net Worth Tracker</span>
+                <div class="ms-auto d-flex gap-3">
+                    <span class="text-light opacity-75 small">Dashboard</span>
+                    <span class="text-light opacity-50 small">Accounts</span>
+                    <span class="text-light opacity-50 small">Reports</span>
+                </div>
+            </div>
+            <!-- Mock summary cards -->
+            <div class="p-3" style="background-color: var(--color-bg-primary);">
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <div class="card card-border-accent">
+                            <div class="card-body py-2 px-3">
+                                <small class="stat-label d-block">Net Worth</small>
+                                <strong class="text-success">$284,750</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card card-border-success">
+                            <div class="card-body py-2 px-3">
+                                <small class="stat-label d-block">Assets</small>
+                                <strong class="text-success">$412,300</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="card card-border-danger">
+                            <div class="card-body py-2 px-3">
+                                <small class="stat-label d-block">Liabilities</small>
+                                <strong class="text-danger">$127,550</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Mock chart area -->
+                <div class="card">
+                    <div class="card-body py-3">
+                        <small class="fw-bold d-block mb-2">Net Worth History</small>
+                        <svg viewBox="0 0 400 80" class="w-100" style="height: 80px;" aria-label="Sample net worth trend chart" role="img">
+                            <defs>
+                                <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--color-success)" stop-opacity="0.3" />
+                                    <stop offset="100%" stop-color="var(--color-success)" stop-opacity="0.02" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,65 Q40,60 80,55 T160,40 T240,30 T320,18 T400,10 L400,80 L0,80 Z" fill="url(#chartGrad)" />
+                            <path d="M0,65 Q40,60 80,55 T160,40 T240,30 T320,18 T400,10" fill="none" stroke="var(--color-success)" stroke-width="2" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="text-center text-muted small mt-3">Dashboard preview with sample data</p>
+</div>
+}
+
 <div class="row mt-5 g-4">
     <div class="col-md-4">
         <div class="card h-100">
