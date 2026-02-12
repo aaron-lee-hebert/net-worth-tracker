@@ -383,7 +383,7 @@ async function saveAssumptions() {
         console.error('Error saving assumptions:', error);
         btn.innerHTML = originalText;
         btn.disabled = false;
-        alert('Failed to save assumptions. Please try again.');
+        window.showToast('Failed to save assumptions. Please try again.', 'danger');
     }
 }
 
@@ -417,7 +417,7 @@ async function resetAssumptions() {
         console.error('Error resetting assumptions:', error);
         btn.innerHTML = originalText;
         btn.disabled = false;
-        alert('Failed to reset assumptions. Please try again.');
+        window.showToast('Failed to reset assumptions. Please try again.', 'danger');
     }
 }
 
