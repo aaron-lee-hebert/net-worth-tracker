@@ -3,8 +3,7 @@
    Inspired by Wall Street Journal, Retro Apple, and classic finance aesthetics
    ========================================================================== */
 
-/* Google Fonts - Libre Baskerville for elegant serif headings */
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+/* Google Fonts - Libre Baskerville loaded via <link> in _Layout.cshtml for better render performance */
 
 /* ==========================================================================
    CSS Custom Properties (Design Tokens)
