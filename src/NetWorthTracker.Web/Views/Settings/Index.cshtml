@@ -66,11 +66,11 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">First Name</label>
-                                    <input type="text" name="firstName" class="form-control" value="@Model.FirstName" placeholder="Enter your first name" />
+                                    <input type="text" name="firstName" class="form-control" value="@Model.FirstName" placeholder="Enter your first name" autocomplete="given-name" />
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Last Name</label>
-                                    <input type="text" name="lastName" class="form-control" value="@Model.LastName" placeholder="Enter your last name" />
+                                    <input type="text" name="lastName" class="form-control" value="@Model.LastName" placeholder="Enter your last name" autocomplete="family-name" />
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -111,7 +111,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Current Password</label>
                                 <div class="input-group">
-                                    <input type="password" name="currentPassword" class="form-control" required />
+                                    <input type="password" name="currentPassword" class="form-control" required autocomplete="current-password" />
                                     <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -120,7 +120,7 @@
                             <div class="mb-3">
                                 <label class="form-label">New Password</label>
                                 <div class="input-group">
-                                    <input type="password" name="newPassword" class="form-control" minlength="8" required data-password-strength />
+                                    <input type="password" name="newPassword" class="form-control" minlength="8" required data-password-strength autocomplete="new-password" />
                                     <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -130,7 +130,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Confirm New Password</label>
                                 <div class="input-group">
-                                    <input type="password" name="confirmPassword" class="form-control" minlength="8" required />
+                                    <input type="password" name="confirmPassword" class="form-control" minlength="8" required autocomplete="new-password" />
                                     <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
                                         <i class="bi bi-eye"></i>
                                     </button>

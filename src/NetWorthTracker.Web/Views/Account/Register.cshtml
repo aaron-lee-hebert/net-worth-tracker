@@ -16,12 +16,12 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="FirstName" class="form-label"></label>
-                            <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                            <input asp-for="FirstName" class="form-control" placeholder="First name" autocomplete="given-name" />
                             <span asp-validation-for="FirstName" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="LastName" class="form-label"></label>
-                            <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                            <input asp-for="LastName" class="form-control" placeholder="Last name" autocomplete="family-name" />
                             <span asp-validation-for="LastName" class="text-danger"></span>
                         </div>
                     </div>
@@ -40,14 +40,14 @@
 
                     <div class="mb-3">
                         <label asp-for="Email" class="form-label"></label>
-                        <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                        <input asp-for="Email" class="form-control" placeholder="Enter your email" autocomplete="email" />
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
                         <div class="input-group">
-                            <input asp-for="Password" class="form-control" placeholder="Create a password" data-password-strength />
+                            <input asp-for="Password" class="form-control" placeholder="Create a password" data-password-strength autocomplete="new-password" />
                             <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
                                 <i class="bi bi-eye"></i>
                             </button>
@@ -58,7 +58,7 @@
                     <div class="mb-3">
                         <label asp-for="ConfirmPassword" class="form-label"></label>
                         <div class="input-group">
-                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm your password" />
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm your password" autocomplete="new-password" />
                             <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
                                 <i class="bi bi-eye"></i>
                             </button>
