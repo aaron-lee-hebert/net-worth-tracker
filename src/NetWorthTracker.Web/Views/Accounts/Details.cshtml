@@ -6,15 +6,10 @@
     var balanceHistory = ViewBag.BalanceHistory as IList<NetWorthTracker.Core.ViewModels.BalanceHistoryViewModel>;
 }
 
+<partial name="_Breadcrumb" model='new (string, string)[] { ("Accounts", "/Accounts"), (Model.Name, "") }' />
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a asp-action="Index">Accounts</a></li>
-                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
-            </ol>
-        </nav>
-    </div>
+    <div></div>
     <div class="d-flex gap-2">
         @if (balanceHistory?.Any() == true)
         {

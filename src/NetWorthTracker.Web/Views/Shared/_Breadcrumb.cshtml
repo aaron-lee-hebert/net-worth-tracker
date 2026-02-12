@@ -1,0 +1,18 @@
+@* Usage: <partial name="_Breadcrumb" model='new[] { ("Dashboard", "/Dashboard"), ("Current Page", "") }' /> *@
+@model IEnumerable<(string Text, string Url)>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb mb-0">
+        @foreach (var (text, url) in Model)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                <li class="breadcrumb-item active" aria-current="page">@text</li>
+            }
+            else
+            {
+                <li class="breadcrumb-item"><a href="@url" class="text-decoration-none">@text</a></li>
+            }
+        }
+    </ol>
+</nav>
