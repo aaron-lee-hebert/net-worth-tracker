@@ -22,7 +22,12 @@
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
-                        <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                        <div class="input-group">
+                            <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                            <button class="btn btn-outline-secondary" type="button" data-toggle-password aria-label="Toggle password visibility">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
