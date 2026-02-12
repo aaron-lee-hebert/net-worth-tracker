@@ -1,7 +1,11 @@
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.Extensions.Options
 @using NetWorthTracker.Core.Entities
+@using NetWorthTracker.Core.Enums
+@using NetWorthTracker.Infrastructure.Services
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IOptions<AppSettings> AppSettingsOptions
 
 <!DOCTYPE html>
 <html lang="en">
@@ -69,6 +73,14 @@
                                             <i class="bi bi-gear me-2"></i>Settings
                                         </a>
                                     </li>
+                                    @if (AppSettingsOptions.Value.AppMode == AppMode.Saas)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Billing" asp-action="Index">
+                                                <i class="bi bi-credit-card me-2"></i>Billing
+                                            </a>
+                                        </li>
+                                    }
                                     @if (User.HasClaim("IsAdmin", "true"))
                                     {
                                         <li>
