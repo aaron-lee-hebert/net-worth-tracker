@@ -763,6 +763,13 @@ a:hover {
     padding: var(--spacing-lg);
 }
 
+/* Responsive chart wrapper */
+.chart-responsive {
+    min-height: 250px;
+    height: 40vh;
+    max-height: 500px;
+}
+
 /* ==========================================================================
    Utility Classes
    ========================================================================== */
