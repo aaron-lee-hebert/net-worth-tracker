@@ -134,6 +134,7 @@
         window.userLocale = '@(Context.Items["UserLocale"] ?? "en-US")';
         window.userCurrency = '@(Context.Items["UserCurrency"] ?? "USD")';
     </script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
