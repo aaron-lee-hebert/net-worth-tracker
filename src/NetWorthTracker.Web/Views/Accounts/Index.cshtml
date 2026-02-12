@@ -48,7 +48,7 @@
         @if (Model.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover table-card-mobile">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -64,22 +64,22 @@
                         @foreach (var account in Model)
                         {
                             <tr class="@(!account.IsActive ? "table-secondary" : "")">
-                                <td>
+                                <td data-label="Name">
                                     <a asp-action="Details" asp-route-id="@account.Id" class="text-decoration-none">
                                         @account.Name
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="Type">
                                     <span class="badge @GetAccountTypeBadgeClass(account.AccountType)">
                                         @account.AccountType.GetDisplayName()
                                     </span>
                                 </td>
-                                <td>@(account.Institution ?? "-")</td>
-                                <td>@(string.IsNullOrEmpty(account.AccountNumber) ? "-" : "****" + account.AccountNumber[^4..])</td>
-                                <td class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
+                                <td data-label="Institution">@(account.Institution ?? "-")</td>
+                                <td data-label="Account #">@(string.IsNullOrEmpty(account.AccountNumber) ? "-" : "****" + account.AccountNumber[^4..])</td>
+                                <td data-label="Balance" class="text-end @(account.AccountType.IsLiability() ? "text-danger" : "")">
                                     @account.CurrentBalance.ToString("C")
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     @if (account.IsActive)
                                     {
                                         <span class="badge bg-success">Active</span>
