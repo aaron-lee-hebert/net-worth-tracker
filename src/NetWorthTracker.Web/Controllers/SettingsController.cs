@@ -100,6 +100,7 @@ public class SettingsController : Controller
 
         _logger.LogInformation("Updated alert settings for user {UserId}", user.Id);
         TempData["SuccessMessage"] = "Notification settings updated successfully.";
+        TempData["ActiveTab"] = "notifications";
 
         return RedirectToAction(nameof(Index));
     }
@@ -146,6 +147,7 @@ public class SettingsController : Controller
             TempData["ErrorMessage"] = "An error occurred while deleting your data. Please try again.";
         }
 
+        TempData["ActiveTab"] = "data";
         return RedirectToAction(nameof(Index));
     }
 
@@ -200,6 +202,7 @@ public class SettingsController : Controller
         {
             _logger.LogError(ex, "Error deleting account for user {UserId}", user.Id);
             TempData["ErrorMessage"] = "An error occurred while deleting your account. Please try again.";
+            TempData["ActiveTab"] = "data";
             return RedirectToAction(nameof(Index));
         }
     }
@@ -248,18 +251,21 @@ public class SettingsController : Controller
         if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
         {
             TempData["ErrorMessage"] = "Current password and new password are required.";
+            TempData["ActiveTab"] = "security";
             return RedirectToAction(nameof(Index));
         }
 
         if (newPassword != confirmPassword)
         {
             TempData["ErrorMessage"] = "New password and confirmation do not match.";
+            TempData["ActiveTab"] = "security";
             return RedirectToAction(nameof(Index));
         }
 
         if (newPassword.Length < 8)
         {
             TempData["ErrorMessage"] = "New password must be at least 8 characters long.";
+            TempData["ActiveTab"] = "security";
             return RedirectToAction(nameof(Index));
         }
 
@@ -298,6 +304,7 @@ public class SettingsController : Controller
             TempData["ErrorMessage"] = $"Failed to change password: {errors}";
         }
 
+        TempData["ActiveTab"] = "security";
         return RedirectToAction(nameof(Index));
     }
 
