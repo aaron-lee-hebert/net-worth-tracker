@@ -23,6 +23,19 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+    // Map flat environment variables to configuration paths
+    var envMappings = new Dictionary<string, string?>
+    {
+        ["App:AppMode"] = Environment.GetEnvironmentVariable("APP_MODE"),
+        ["Stripe:SecretKey"] = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY"),
+        ["Stripe:WebhookSecret"] = Environment.GetEnvironmentVariable("STRIPE_WEBHOOK_SECRET"),
+        ["Stripe:PriceId"] = Environment.GetEnvironmentVariable("STRIPE_PRICE_ID"),
+        ["SendGrid:ApiKey"] = Environment.GetEnvironmentVariable("SENDGRID_API_KEY"),
+    };
+
+    builder.Configuration.AddInMemoryCollection(
+        envMappings.Where(kvp => kvp.Value != null)!);
+
     // Configure Serilog from appsettings.json
     builder.Host.UseSerilog((context, services, configuration) =>
     {
@@ -170,6 +183,9 @@ try
     app.UseUserLocale();
 
     app.UseAuthorization();
+
+    // Subscription gating for SaaS mode (no-op in self-hosted mode)
+    app.UseSubscriptionGating();
 
     app.MapStaticAssets();
 

@@ -1,0 +1,55 @@
+@model NetWorthTracker.Core.ViewModels.BillingViewModel
+@{
+    ViewData["Title"] = "Billing";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-credit-card me-2"></i>Billing</h4>
+            </div>
+            <div class="card-body">
+                @if (Model.HasSubscription)
+                {
+                    <div class="mb-4">
+                        <h5>Subscription Status</h5>
+                        <p>
+                            <span class="badge @(Model.Status == NetWorthTracker.Core.Enums.SubscriptionStatus.Active || Model.Status == NetWorthTracker.Core.Enums.SubscriptionStatus.Trialing ? "bg-success" : "bg-warning")">
+                                @Model.Status
+                            </span>
+                        </p>
+                        @if (Model.CurrentPeriodEnd.HasValue)
+                        {
+                            <p class="text-muted">
+                                Current period ends: @Model.CurrentPeriodEnd.Value.ToString("MMMM dd, yyyy")
+                            </p>
+                        }
+                    </div>
+
+                    <form asp-action="CreatePortalSession" method="post">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-gear me-2"></i>Manage Subscription
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="text-center mb-4">
+                        <i class="bi bi-lock display-4 text-muted"></i>
+                        <h5 class="mt-3">Subscription Required</h5>
+                        <p class="text-muted">Subscribe to access all features of Net Worth Tracker.</p>
+                    </div>
+
+                    <form asp-action="CreateCheckoutSession" method="post">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-cart me-2"></i>Subscribe Now
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "Checkout Canceled";
+}
+
+<div class="text-center">
+    <h1 class="display-4 text-warning"><i class="bi bi-x-circle"></i></h1>
+    <h2>Checkout Canceled</h2>
+    <p class="lead">Your checkout was canceled. No charges were made.</p>
+    <a asp-controller="Billing" asp-action="Index" class="btn btn-primary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Billing
+    </a>
+</div>
